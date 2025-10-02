@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Thanh toán - Shop Máy Tính</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <h1>💻 Shop Máy Tính</h1>
+    <nav>
+      <a href="index.html">Trang chủ</a>
+      <a href="products.html">Sản phẩm</a>
+      <a href="cart.html">Giỏ hàng</a>
+      <a href="checkout.html">Thanh toán</a>
+    </nav>
+  </header>
+
+  <main>
+    <h2>Chọn phương thức thanh toán</h2>
+
+    <form id="payment-form">
+      <label>
+        <input type="radio" name="payment" value="momo" required>
+        Thanh toán qua Momo
+      </label><br>
+
+      <label>
+        <input type="radio" name="payment" value="bank">
+        Chuyển khoản Ngân hàng
+      </label><br>
+
+      <label>
+        <input type="radio" name="payment" value="cod">
+        Thanh toán khi nhận hàng (COD)
+      </label><br><br>
+
+      <button type="submit">Xác nhận thanh toán</button>
+    </form>
+
+    <div id="payment-info" style="margin-top:20px;"></div>
+  </main>
+
+  <script src="js/payment.js"></script>
+</body>
+</html>
