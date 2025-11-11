@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Quản lý hệ thống bán máy tính</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="admin.css">
+    <script src="../js/products.js"></script>
+</head>
+
+<body>
+
+    <div id="loginPage">
+        <div class="login-box">
+            <h2><i class="fas fa-shield-alt"></i> Admin Login</h2>
+            <p>Đăng nhập vào hệ thống quản trị</p>
+            <form onsubmit="loginAdmin(event)">
+                <div class="form-group">
+                    <label><i class="fas fa-user"></i> Tên đăng nhập</label>
+                    <input type="text" id="adminUsername" class="form-control" placeholder="admin" required>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i> Mật khẩu</label>
+                    <input type="password" id="adminPassword" class="form-control" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
+                    <i class="fas fa-sign-in-alt"></i> Đăng nhập
+                </button>
+            </form>
+            <p style="margin-top: 20px; text-align: center; font-size: 12px; color: #94a3b8;">
+                Tài khoản: <strong>admin</strong> / <strong>admin123</strong>
+            </p>
+        </div>
+    </div>
+
+    <div id="adminPage" class="hidden">
+
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h3><i class="fas fa-user-shield"></i> Admin Panel</h3>
+                <p>Hệ thống quản lý</p>
+            </div>
+            <div class="menu-item active" onclick="showSection('dashboard')">
+                <i class="fas fa-chart-line"></i>
+                <span>Dashboard</span>
+            </div>
+            <div class="menu-item" onclick="showSection('users')">
+                <i class="fas fa-users"></i>
+                <span>Người dùng</span>
+            </div>
+            <div class="menu-item" onclick="showSection('categories')">
+                <i class="fas fa-th-large"></i>
+                <span>Loại sản phẩm</span>
+            </div>
+            <div class="menu-item" onclick="showSection('products')">
+                <i class="fas fa-box"></i>
+                <span>Sản phẩm</span>
+            </div>
+            <div class="menu-item" onclick="showSection('imports')">
+                <i class="fas fa-file-import"></i>
+                <span>Nhập hàng</span>
+            </div>
+            <div class="menu-item" onclick="showSection('pricing')">
+                <i class="fas fa-tags"></i>
+                <span>Giá bán</span>
+            </div>
+            <div class="menu-item" onclick="showSection('orders')">
+                <i class="fas fa-shopping-cart"></i>
+                <span>Đơn hàng</span>
+            </div>
+            <div class="menu-item" onclick="showSection('inventory')">
+                <i class="fas fa-warehouse"></i>
+                <span>Tồn kho</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="top-bar">
+                <h2 id="pageTitle">Dashboard</h2>
+                <button class="btn btn-logout" onclick="logoutAdmin()">
+                    <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                </button>
+            </div>
+
+            <div id="dashboard" class="section active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon users"><i class="fas fa-users"></i></div>
+                        <div class="stat-info">
+                            <h3>Người dùng</h3>
+                            <p id="totalUsers">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon products"><i class="fas fa-box"></i></div>
+                        <div class="stat-info">
+                            <h3>Sản phẩm</h3>
+                            <p id="totalProducts">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orders"><i class="fas fa-shopping-cart"></i></div>
+                        <div class="stat-info">
+                            <h3>Đơn hàng</h3>
+                            <p id="totalOrders">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon revenue"><i class="fas fa-dollar-sign"></i></div>
+                        <div class="stat-info">
+                            <h3>Doanh thu</h3>
+                            <p id="totalRevenue">0đ</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-history"></i> Đơn hàng gần đây</h3>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã đơn</th>
+                                <th>Ngày đặt</th>
+                                <th>Khách hàng</th>
+                                <th>Tổng tiền</th>
+                                <th>Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentOrdersTable">
+                            <tr><td colspan="5" class="text-center">Đang tải...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="users" class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-users"></i> Quản lý người dùng</h3>
+                        <button class="btn btn-primary btn-sm" onclick="openUserModal()">
+                            <i class="fas fa-plus"></i> Thêm người dùng
+                        </button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Họ tên</th>
+                                <th>Email</th>
+                                <th>Số điện thoại</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTable">
+                            <tr><td colspan="6" class="text-center">Đang tải...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="categories" class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-th-large"></i> Quản lý loại sản phẩm</h3>
+                        <button class="btn btn-primary btn-sm" onclick="openCategoryModal()">
+                            <i class="fas fa-plus"></i> Thêm loại
+                        </button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã loại</th>
+                                <th>Tên loại</th>
+                                <th>Mô tả</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="categoriesTable">
+                            <tr><td colspan="5" class="text-center">Đang tải...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="products" class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-box"></i> Quản lý sản phẩm</h3>
+                        <button class="btn btn-primary btn-sm" onclick="openProductModal()">
+                            <i class="fas fa-plus"></i> Thêm sản phẩm
+                        </button>
+                    </div>
+                    <div class="filter-bar">
+                        <input type="text" id="searchProduct" placeholder="Tìm kiếm sản phẩm..." oninput="renderProducts()">
+                        <select id="filterProductType" onchange="renderProducts()">
+                            <option value="">Tất cả loại</option>
+                            </select>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Loại</th>
+                                <th>Mã SP</th>
+                                <th>Tên sản phẩm</th>
+                                <th>Hình ảnh</th>
+                                <th>Mô tả</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productsTable">
+                            <tr><td colspan="7" class="text-center">Đang tải...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="imports" class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-file-import"></i> Quản lý nhập hàng</h3>
+                        <button class="btn btn-primary btn-sm" onclick="openImportModal()">
+                            <i class="fas fa-plus"></i> Thêm phiếu nhập
+                        </button>
+                    </div>
+                    <div class="filter-bar">
+                        <input type="text" id="searchImport" placeholder="Tìm kiếm phiếu nhập..." oninput="renderImports()">
+                        <select id="filterImportStatus" onchange="renderImports()">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="completed">Hoàn thành</option>
+                            <option value="pending">Chưa hoàn thành</option>
+                        </select>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã phiếu</th>
+                                <th>Ngày nhập</th>
+                                <th>Sản phẩm</th>
+                                <th>Đơn giá</th>
+                                <th>Số lượng</th>
+                                <th>Tổng tiền</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="importsTable">
+                            <tr><td colspan="8" class="text-center">Đang tải...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="pricing" class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-tags"></i> Quản lý giá bán</h3>
+                        <button class="btn btn-primary btn-sm" onclick="openPricingModal()">
+                            <i class="fas fa-plus"></i> Cấu hình giá
+                        </button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Loại SP</th>
+                                <th>Tên sản phẩm</th>
+                                <th>Giá vốn</th>
+                                <th>% Lợi nhuận</th>
+                                <th>Giá bán</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pricingTable">
+                            <tr><td colspan="6" class="text-center">Đang tải...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="orders" class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-shopping-cart"></i> Quản lý đơn hàng</h3>
+                    </div>
+                    <div class="filter-bar">
+                        <input type="date" id="fromDate" onchange="filterOrders()">
+                        <input type="date" id="toDate" onchange="filterOrders()">
+                        <select id="orderStatusFilter" onchange="filterOrders()">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="Mới đặt">Mới đặt</option>
+                            <option value="Đã xử lý">Đã xử lý</option>
+                            <option value="Đã giao">Đã giao</option>
+                            <option value="Hủy">Hủy</option>
+                        </select>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã đơn</th>
+                                <th>Ngày đặt</th>
+                                <th>Khách hàng</th>
+                                <th>Tổng tiền</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersTable">
+                            <tr><td colspan="6" class="text-center">Đang tải...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="inventory" class="section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-warehouse"></i> Quản lý tồn kho</h3>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-warning btn-sm" onclick="showLowStockAlert()">
+                                <i class="fas fa-exclamation-triangle"></i> Sắp hết hàng
+                            </button>
+                            <button class="btn btn-info btn-sm" onclick="openInventoryReportModal()">
+                                <i class="fas fa-chart-bar"></i> Báo cáo nhập-xuất-tồn
+                            </button>
+                        </div>
+                    </div>
+                    <div class="filter-bar">
+                        <input type="text" id="searchInventory" placeholder="Tìm kiếm sản phẩm..." oninput="renderInventory()">
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Loại SP</th>
+                                <th>Tên sản phẩm</th>
+                                <th>Số lượng tồn</th>
+                                <th>Cảnh báo</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryTable">
+                            <tr><td colspan="5" class="text-center">Đang tải...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div> </div> <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="userModalTitle">Thêm người dùng</h3>
+                <button class="close-btn" onclick="closeUserModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Họ tên *</label>
+                    <input type="text" id="userName" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="userEmail" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Số điện thoại</label>
+                    <input type="tel" id="userPhone" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Mật khẩu *</label>
+                    <input type="password" id="userPassword" class="form-control" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="saveUser()">
+                    <i class="fas fa-save"></i> Lưu
+                </button>
+                <button class="btn" style="background: #e2e8f0; color: #333;" onclick="closeUserModal()">Hủy</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="categoryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="categoryModalTitle">Thêm loại sản phẩm</h3>
+                <button class="close-btn" onclick="closeCategoryModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Mã loại *</label>
+                    <input type="text" id="categoryCode" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Tên loại *</label>
+                    <input type="text" id="categoryName" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Mô tả</label>
+                    <textarea id="categoryDesc" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="saveCategory()">
+                    <i class="fas fa-save"></i> Lưu
+                </button>
+                <button class="btn" style="background: #e2e8f0; color: #333;" onclick="closeCategoryModal()">Hủy</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="productModalTitle">Thêm sản phẩm</h3>
+                <button class="close-btn" onclick="closeProductModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Loại sản phẩm *</label>
+                    <select id="productType" class="form-control" required>
+                        <option value="">Chọn loại</option>
+                         </select>
+                </div>
+                <div class="form-group">
+                    <label>Mã sản phẩm *</label>
+                    <input type="text" id="productCode" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Tên sản phẩm *</label>
+                    <input type="text" id="productName" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Hình ảnh sản phẩm *</label>
+                    <input type="file" id="productImageFile" accept="image/*" onchange="handleFileSelection(this)">
+                    <label for="productImageFile">
+                        <small id="fileUploadLabel">
+                            <i class="fas fa-cloud-upload-alt"></i> Chọn file ảnh (JPG, PNG, GIF, tối đa 5MB)
+                        </small>
+                    </label>
+                    <div id="fileNameDisplay" style="display: none;" class="file-name-display">
+                        <i class="fas fa-file-image"></i>
+                        <span id="selectedFileName"></span>
+                    </div>
+                    <div id="imagePreview" style="display: none;">
+                        <img id="previewImg" src="" alt="Preview">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Mô tả</label>
+                    <textarea id="productDesc" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="saveProduct()">
+                    <i class="fas fa-save"></i> Lưu
+                </button>
+                <button class="btn" style="background: #e2e8f0; color: #333;" onclick="closeProductModal()">Hủy</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="importModalTitle">Thêm phiếu nhập hàng</h3>
+                <button class="close-btn" onclick="closeImportModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Mã phiếu nhập</label>
+                    <input type="text" id="importCode" class="form-control" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Ngày nhập *</label>
+                    <input type="date" id="importDate" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Sản phẩm *</label>
+                    <select id="importProduct" class="form-control" required>
+                        <option value="">Chọn sản phẩm</option>
+                         </select>
+                </div>
+                <div class="form-group">
+                    <label>Đơn giá nhập *</label>
+                    <input type="number" id="importPrice" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Số lượng *</label>
+                    <input type="number" id="importQty" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Tổng tiền</label>
+                    <input type="text" id="importTotal" class="form-control" readonly>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="saveImport()">
+                    <i class="fas fa-save"></i> Lưu
+                </button>
+                <button class="btn" style="background: #e2e8f0; color: #333;" onclick="closeImportModal()">Hủy</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="pricingModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="pricingModalTitle">Cấu hình giá bán</h3>
+                <button class="close-btn" onclick="closePricingModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Loại sản phẩm *</label>
+                    <select id="pricingType" class="form-control" required>
+                        <option value="">Chọn loại</option>
+                         </select>
+                </div>
+                <div class="form-group">
+                    <label>Sản phẩm *</label>
+                    <select id="pricingProduct" class="form-control" required>
+                        <option value="">Chọn sản phẩm</option>
+                         </select>
+                </div>
+                <div class="form-group">
+                    <label>Giá vốn *</label>
+                    <input type="number" id="pricingCost" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>% Lợi nhuận *</label>
+                    <input type="number" id="pricingProfit" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Giá bán (tự động tính)</label>
+                    <input type="text" id="pricingSell" class="form-control" readonly>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="savePricing()">
+                    <i class="fas fa-save"></i> Lưu
+                </button>
+                <button class="btn" style="background: #e2e8f0; color: #333;" onclick="closePricingModal()">Hủy</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="orderDetailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Chi tiết đơn hàng</h3>
+                <button class="close-btn" onclick="closeOrderDetailModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="orderDetailContent">
+                </div>
+            <div class="modal-footer">
+                <button class="btn" style="background: #e2e8f0; color: #333;" onclick="closeOrderDetailModal()">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="inventoryReportModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-chart-bar"></i> Báo cáo nhập - xuất - tồn</h3>
+                <button class="close-btn" onclick="closeInventoryReportModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Sản phẩm</label>
+                    <select id="reportProduct" class="form-control">
+                        <option value="">Tất cả sản phẩm</option>
+                         </select>
+                </div>
+                <div class="form-group">
+                    <label>Từ ngày</label>
+                    <input type="date" id="reportFromDate" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Đến ngày</label>
+                    <input type="date" id="reportToDate" class="form-control">
+                </div>
+                <button class="btn btn-primary" style="width: 100%; margin-top: 10px; justify-content: center;" onclick="generateReport()">
+                    <i class="fas fa-file-chart-line"></i> Tạo báo cáo
+                </button>
+                <div id="reportResult" style="margin-top: 20px;">
+                    </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" style="background: #e2e8f0; color: #333;" onclick="closeInventoryReportModal()">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+
+Đây là danh sách các sản phẩm và tên file ảnh tương ứng bạn cần chuẩn bị.
+Bạn hãy tạo một thư mục tên `img` trong thư mục `Web_Project` và đặt các ảnh đã được đổi tên vào đó.
+
+==================================================
+**CPU - VI XỬ LÝ**
+==================================================
+- Intel Core i9-13900K  (cần ảnh tên: cpu1.jpg)
+- AMD Ryzen 9 7950X     (cần ảnh tên: cpu2.jpg)
+- Intel Core i7-13700K  (cần ảnh tên: cpu3.jpg)
+- AMD Ryzen 7 7700X     (cần ảnh tên: cpu4.jpg)
+- Intel Core i5-13600K  (cần ảnh tên: cpu1.jpg)
+- AMD Ryzen 5 7600X     (cần ảnh tên: cpu2.jpg)
+- Intel Core i3-13100F  (cần ảnh tên: cpu3.jpg)
+- AMD Ryzen 5 5600G     (cần ảnh tên: cpu4.jpg)
+
+==================================================
+**VGA - CARD ĐỒ HỌA**
+==================================================
+- NVIDIA GeForce RTX 4090 24GB  (cần ảnh tên: vga1.jpg)
+- AMD Radeon RX 7900 XTX 24GB   (cần ảnh tên: vga2.jpg)
+- NVIDIA GeForce RTX 4070 Ti 12GB (cần ảnh tên: vga3.jpg)
+- NVIDIA GeForce RTX 3060 12GB    (cần ảnh tên: vga4.jpg)
+- AMD Radeon RX 6600 8GB        (cần ảnh tên: vga2.jpg)
+- NVIDIA GeForce RTX 4080 16GB  (cần ảnh tên: vga1.jpg)
+- AMD Radeon RX 7800 XT 16GB    (cần ảnh tên: vga2.jpg)
+- NVIDIA GeForce RTX 4060 8GB     (cần ảnh tên: vga3.jpg)
+
+==================================================
+**RAM - BỘ NHỚ TRONG**
+==================================================
+- Corsair Vengeance 32GB (2x16) DDR5 5600MHz  (cần ảnh tên: ram1.jpg)
+- G.Skill Trident Z5 32GB (2x16) DDR5 6000MHz   (cần ảnh tên: ram2.jpg)
+- Kingston Fury Beast 16GB DDR4 3200MHz        (cần ảnh tên: ram3.jpg)
+- Crucial Pro 32GB (2x16GB) DDR5 5200MHz       (cần ảnh tên: ram1.jpg)
+- Teamgroup T-Force Delta 16GB (2x8GB) DDR4 3600MHz (cần ảnh tên: ram2.jpg)
+
+==================================================
+**CASE - VỎ MÁY TÍNH**
+==================================================
+- Lian Li O11 Dynamic EVO  (cần ảnh tên: case1.jpg)
+- NZXT H5 Flow             (cần ảnh tên: case2.jpg)
+- Corsair 4000D Airflow    (cần ảnh tên: case1.jpg)
+- Fractal Design Meshify 2 (cần ảnh tên: case2.jpg)
+- Cooler Master MasterBox TD500 Mesh (cần ảnh tên: case1.jpg)
+
+==================================================
+**MÀN HÌNH**
+==================================================
+- LG UltraGear 27GP850-B 27" 2K 165Hz  (cần ảnh tên: monitor1.jpg)
+- Dell UltraSharp U2723QE 27" 4K 60Hz   (cần ảnh tên: monitor2.jpg)
+- Samsung Odyssey G7 32" 2K 240Hz      (cần ảnh tên: monitor3.jpg)
+- ASUS TUF Gaming VG27AQ 27" 2K 165Hz  (cần ảnh tên: monitor1.jpg)
+- ViewSonic VX2776-SHD 27" FHD 75Hz   (cần ảnh tên: monitor2.jpg)
+- Gigabyte M28U 28" 4K 144Hz          (cần ảnh tên: monitor3.jpg)
+
+==================================================
+**GEAR - PHỤ KIỆN**
+==================================================
+- Bàn phím cơ Keychron K4 Pro      (cần ảnh tên: keyboard1.jpg)
+- Chuột Logitech MX Master 3S        (cần ảnh tên: mouse1.jpg)
+- Tai nghe SteelSeries Arctis Nova 7 (cần ảnh tên: headphone1.jpg)
+- Bàn phím Akko 5075B Plus         (cần ảnh tên: keyboard2.jpg)
+- Chuột Razer DeathAdder V3 Pro      (cần ảnh tên: mouse2.jpg)
+- Tai nghe Sony WH-1000XM5         (cần ảnh tên: headphone1.jpg)
+- Lót chuột Logitech Desk Mat       (cần ảnh tên: mousepad1.jpg)
+- Webcam Logitech C922 Pro Stream    (cần ảnh tên: webcam1.jpg)
