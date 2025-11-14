@@ -290,7 +290,6 @@ function renderPaginationControls(currentPage, totalPages, baseUrl) {
 
 /**
  * Chú thích: Hàm render lưới sản phẩm.
- * Cập nhật: Bỏ logic slice, vì đã xử lý ở hàm cha
  */
 function renderProductGrid(productList) {
   if (!productList || productList.length === 0) {
@@ -1412,6 +1411,13 @@ function renderCheckout() {
     return;
   }
   const user = getLoggedInUser();
+  
+  // Lấy thông tin đầy đủ từ admin_users (bao gồm phone và address)
+  const adminUsers = JSON.parse(localStorage.getItem('admin_users')) || [];
+  const fullUserData = adminUsers.find(u => u.email === user.email) || user;
+  const userPhone = fullUserData.phone || '';
+  const userAddress = fullUserData.address || '';
+  
   let summaryHTML = "";
   let totalAmount = 0;
   let ShipCod = 30000;
@@ -1450,11 +1456,11 @@ function renderCheckout() {
                         </div>
                         <div>
                             <label for="checkout-phone">Số Điện Thoại*</label>
-                            <input type="tel" id="checkout-phone" placeholder="VD: 0123456789" pattern="[0-9]{10,11}" title="Nhập 10-11 chữ số" required>
+                            <input type="tel" id="checkout-phone" value="${userPhone}" placeholder="VD: 0123456789" pattern="[0-9]{10,11}" title="Nhập 10-11 chữ số" required>
                         </div>
                         <div>
                             <label for="checkout-email">Email*</label>
-                            <input type="email" id="checkout-email" value="${user.email}" placeholder="VD: example@gmail.com" required>
+                            <input type="email" id="checkout-email" value="${user.email}" placeholder="VD: example@domain.com" required>
                         </div>   
                         <div>
                             <label for="checkout-city">Thành Phố</label>
@@ -1469,7 +1475,7 @@ function renderCheckout() {
                         </div>
                         <div class="full-row">
                             <label for="checkout-address">Địa Chỉ</label>
-                            <input type="text" id="checkout-address" placeholder="VD: 273 An Dương Vương, Phường Chợ Quán" required>
+                            <input type="text" id="checkout-address" value="${userAddress}" placeholder="VD: 273 An Dương Vương, Phường Chợ Quán" required>
                         </div>
                         <div class="full-row">
                             <label for="note">Ghi Chú</label>

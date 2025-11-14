@@ -463,7 +463,7 @@
     </div>
 
     <div id="importModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 900px;">
             <div class="modal-header">
                 <h3 id="importModalTitle">Thêm phiếu nhập hàng</h3>
                 <button class="close-btn" onclick="closeImportModal()">&times;</button>
@@ -477,28 +477,42 @@
                     <label>Ngày nhập *</label>
                     <input type="date" id="importDate" class="form-control" required>
                 </div>
+                
+                <!-- Bảng danh sách sản phẩm nhập -->
                 <div class="form-group">
-                    <label>Sản phẩm *</label>
-                    <select id="importProduct" class="form-control" required>
-                        <option value="">Chọn sản phẩm</option>
-                         </select>
-                </div>
-                <div class="form-group">
-                    <label>Đơn giá nhập *</label>
-                    <input type="number" id="importPrice" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label>Số lượng *</label>
-                    <input type="number" id="importQty" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label>Tổng tiền</label>
-                    <input type="text" id="importTotal" class="form-control" readonly>
+                    <label style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Danh sách sản phẩm nhập *</span>
+                        <button type="button" class="btn btn-sm btn-success" onclick="addImportRow()" style="padding: 5px 12px;">
+                            <i class="fas fa-plus"></i> Thêm sản phẩm
+                        </button>
+                    </label>
+                    <div style="overflow-x: auto;">
+                        <table class="table" style="margin-top: 10px;">
+                            <thead>
+                                <tr>
+                                    <th style="width: 35%;">Sản phẩm</th>
+                                    <th style="width: 25%;">Đơn giá nhập</th>
+                                    <th style="width: 20%;">Số lượng</th>
+                                    <th style="width: 15%;">Thành tiền</th>
+                                    <th style="width: 5%;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="importProductsTable">
+                                <!-- Rows will be added dynamically -->
+                            </tbody>
+                            <tfoot>
+                                <tr style="font-weight: bold; background: #f8f9fa;">
+                                    <td colspan="3" style="text-align: right; padding-right: 20px;">Tổng tiền:</td>
+                                    <td id="importGrandTotal" colspan="2">0đ</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-primary" onclick="saveImport()">
-                    <i class="fas fa-save"></i> Lưu
+                    <i class="fas fa-save"></i> Lưu phiếu nhập
                 </button>
                 <button class="btn" style="background: #e2e8f0; color: #333;" onclick="closeImportModal()">Hủy</button>
             </div>

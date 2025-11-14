@@ -104,6 +104,12 @@ function formatCurrency(amount) {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 }
 
+// Validate email format
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
 function showNotification(message, type = 'success') {
     const colors = {
         success: '#10b981',
@@ -388,6 +394,12 @@ function saveUser() {
         return;
     }
     
+    // Validate email format
+    if (!isValidEmail(email)) {
+        showNotification('❌ Email không hợp lệ! Vui lòng nhập đúng định dạng (vd: example@domain.com)', 'error');
+        return;
+    }
+    
     if (editingUserId) {
         const user = users.find(u => u.id === editingUserId);
         user.name = name;
@@ -397,7 +409,15 @@ function saveUser() {
         showNotification('Cập nhật người dùng thành công!', 'success');
     } else {
         const newId = users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1;
-        users.push({ id: newId, name, email, phone, password, active: true });
+        users.push({ 
+            id: newId, 
+            name, 
+            email, 
+            phone, 
+            address: "", // Thêm field address
+            password, 
+            active: true 
+        });
         showNotification('Thêm người dùng thành công!', 'success');
     }
     
@@ -964,8 +984,13 @@ function renderImports() {
     });
 }
 
+// ===== IMPORT MANAGEMENT (MULTI-PRODUCT) =====
+let importProducts = []; // Mảng tạm chứa sản phẩm trong phiếu nhập hiện tại
+
 function openImportModal() {
     editingImportId = null;
+    importProducts = []; // Reset danh sách sản phẩm
+    
     const newCode = 'PN' + String(imports.length + 1).padStart(3, '0');
     const today = new Date().toISOString().split('T')[0];
     
@@ -973,97 +998,183 @@ function openImportModal() {
     document.getElementById('importCode').value = newCode;
     document.getElementById('importDate').value = today;
     
-    // Load products
-    const select = document.getElementById('importProduct');
-    select.innerHTML = '<option value="">Chọn sản phẩm</option>';
-    products_admin.filter(p => p.active).forEach(p => {
-        select.innerHTML += `<option value="${p.id}">${p.name}</option>`;
-    });
+    // Clear table
+    document.getElementById('importProductsTable').innerHTML = '';
+    document.getElementById('importGrandTotal').textContent = '0đ';
     
-    document.getElementById('importPrice').value = '';
-    document.getElementById('importQty').value = '';
-    document.getElementById('importTotal').value = '';
+    // Thêm 1 dòng mặc định
+    addImportRow();
     
     document.getElementById('importModal').classList.add('show');
 }
 
-function closeImportModal() {
-    document.getElementById('importModal').classList.remove('show');
+function addImportRow() {
+    const tableBody = document.getElementById('importProductsTable');
+    const rowIndex = importProducts.length;
+    
+    // Thêm vào mảng tạm
+    importProducts.push({
+        productId: null,
+        price: 0,
+        qty: 0
+    });
+    
+    // Tạo dropdown sản phẩm
+    let productOptions = '<option value="">-- Chọn sản phẩm --</option>';
+    products_admin.filter(p => p.active).forEach(p => {
+        productOptions += `<option value="${p.id}">${p.name}</option>`;
+    });
+    
+    const row = `
+        <tr data-row-index="${rowIndex}">
+            <td>
+                <select class="form-control import-product-select" onchange="updateImportRow(${rowIndex})" data-row="${rowIndex}">
+                    ${productOptions}
+                </select>
+            </td>
+            <td>
+                <input type="number" class="form-control import-price" placeholder="0" min="0" 
+                       onchange="updateImportRow(${rowIndex})" oninput="updateImportRow(${rowIndex})" 
+                       data-row="${rowIndex}">
+            </td>
+            <td>
+                <input type="number" class="form-control import-qty" placeholder="0" min="1" 
+                       onchange="updateImportRow(${rowIndex})" oninput="updateImportRow(${rowIndex})" 
+                       data-row="${rowIndex}">
+            </td>
+            <td class="import-row-total" data-row="${rowIndex}">0đ</td>
+            <td>
+                <button type="button" class="btn btn-sm btn-danger" onclick="removeImportRow(${rowIndex})" 
+                        title="Xóa dòng">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        </tr>
+    `;
+    
+    tableBody.insertAdjacentHTML('beforeend', row);
 }
 
-// Auto calculate total
-document.addEventListener('DOMContentLoaded', () => {
-    const priceInput = document.getElementById('importPrice');
-    const qtyInput = document.getElementById('importQty');
-    const totalInput = document.getElementById('importTotal');
+function updateImportRow(rowIndex) {
+    const row = document.querySelector(`tr[data-row-index="${rowIndex}"]`);
+    if (!row) return;
     
-    if (priceInput && qtyInput && totalInput) {
-        const calcTotal = () => {
-            const price = parseInt(priceInput.value) || 0;
-            const qty = parseInt(qtyInput.value) || 0;
-            totalInput.value = formatCurrency(price * qty);
-        };
-        
-        priceInput.addEventListener('input', calcTotal);
-        qtyInput.addEventListener('input', calcTotal);
+    const productSelect = row.querySelector('.import-product-select');
+    const priceInput = row.querySelector('.import-price');
+    const qtyInput = row.querySelector('.import-qty');
+    const totalCell = row.querySelector('.import-row-total');
+    
+    const productId = parseInt(productSelect.value) || null;
+    const price = parseInt(priceInput.value) || 0;
+    const qty = parseInt(qtyInput.value) || 0;
+    
+    // Cập nhật dữ liệu
+    importProducts[rowIndex] = {
+        productId,
+        price,
+        qty
+    };
+    
+    // Tính thành tiền
+    const rowTotal = price * qty;
+    totalCell.textContent = formatCurrency(rowTotal);
+    
+    // Cập nhật tổng cộng
+    updateImportGrandTotal();
+}
+
+function removeImportRow(rowIndex) {
+    const row = document.querySelector(`tr[data-row-index="${rowIndex}"]`);
+    if (row) {
+        row.remove();
+        importProducts[rowIndex] = null; // Đánh dấu xóa
+        updateImportGrandTotal();
     }
+}
+
+function updateImportGrandTotal() {
+    const grandTotal = importProducts
+        .filter(item => item !== null && item.productId)
+        .reduce((sum, item) => sum + (item.price * item.qty), 0);
     
-    // Same for pricing
-    const costInput = document.getElementById('pricingCost');
-    const profitInput = document.getElementById('pricingProfit');
-    const sellInput = document.getElementById('pricingSell');
-    
-    if (costInput && profitInput && sellInput) {
-        const calcSell = () => {
-            const cost = parseInt(costInput.value) || 0;
-            const profit = parseInt(profitInput.value) || 0;
-            const sell = Math.round(cost * (1 + profit / 100));
-            sellInput.value = formatCurrency(sell);
-        };
-        
-        costInput.addEventListener('input', calcSell);
-        profitInput.addEventListener('input', calcSell);
-    }
-});
+    document.getElementById('importGrandTotal').textContent = formatCurrency(grandTotal);
+}
+
+function closeImportModal() {
+    document.getElementById('importModal').classList.remove('show');
+    importProducts = [];
+}
 
 function saveImport() {
     const code = document.getElementById('importCode').value;
     const date = document.getElementById('importDate').value;
-    const productId = parseInt(document.getElementById('importProduct').value);
-    const price = parseInt(document.getElementById('importPrice').value);
-    const qty = parseInt(document.getElementById('importQty').value);
     
-    if (!productId || !price || !qty) {
-        showNotification('Vui lòng nhập đầy đủ thông tin!', 'error');
+    // Lọc sản phẩm hợp lệ
+    const validProducts = importProducts.filter(item => 
+        item !== null && item.productId && item.price > 0 && item.qty > 0
+    );
+    
+    if (validProducts.length === 0) {
+        showNotification('❌ Vui lòng thêm ít nhất 1 sản phẩm hợp lệ!', 'error');
         return;
     }
     
-    const product = products_admin.find(p => p.id === productId);
-    
-    if (editingImportId) {
-        const imp = imports.find(i => i.id === editingImportId);
-        imp.date = date;
-        imp.productId = productId;
-        imp.productName = product.name;
-        imp.price = price;
-        imp.qty = qty;
-        showNotification('Cập nhật phiếu nhập thành công!', 'success');
-    } else {
-        imports.push({
-            id: code,
-            date,
-            productId,
-            productName: product.name,
-            price,
-            qty,
-            completed: false
-        });
-        showNotification('Thêm phiếu nhập thành công!', 'success');
+    if (!date) {
+        showNotification('❌ Vui lòng chọn ngày nhập!', 'error');
+        return;
     }
+    
+    // Lưu từng sản phẩm thành phiếu riêng (hoặc có thể gộp chung, tùy yêu cầu)
+    // Ở đây tôi sẽ lưu thành 1 phiếu duy nhất với nhiều items
+    const importRecord = {
+        id: code,
+        date,
+        items: validProducts.map(item => {
+            const product = products_admin.find(p => p.id === item.productId);
+            return {
+                productId: item.productId,
+                productName: product.name,
+                price: item.price,
+                qty: item.qty
+            };
+        }),
+        completed: false
+    };
+    
+    imports.push(importRecord);
+    
+    // Cập nhật tồn kho cho từng sản phẩm
+    validProducts.forEach(item => {
+        updateInventoryAfterImport(item.productId, item.qty, item.price);
+    });
+    
+    showNotification(`✅ Đã tạo phiếu nhập ${code} với ${validProducts.length} sản phẩm!`, 'success');
     
     saveData();
     closeImportModal();
     renderImports();
+}
+
+// Cập nhật hàm updateInventoryAfterImport để tương thích
+function updateInventoryAfterImport(productId, qty, price) {
+    const inventory = JSON.parse(localStorage.getItem('admin_inventory')) || [];
+    const existingItem = inventory.find(inv => Number(inv.productId) === Number(productId));
+    
+    if (existingItem) {
+        existingItem.quantity += qty;
+        existingItem.lastImportPrice = price;
+    } else {
+        const product = products_admin.find(p => p.id === productId);
+        inventory.push({
+            productId: productId,
+            productName: product.name,
+            quantity: qty,
+            minStock: 10,
+            lastImportPrice: price
+        });
+    }
+    
+    localStorage.setItem('admin_inventory', JSON.stringify(inventory));
 }
 
 function editImport(id) {

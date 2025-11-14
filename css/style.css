@@ -1007,14 +1007,86 @@ body {
 /* ==================================================
    PRODUCT CARD (Thẻ sản phẩm)
 ================================================== */
-.product-card { border: 1px solid #ddd; border-radius: 8px; background-color: #fff; text-align: center; padding: 15px; transition: all 0.3s ease; display: flex; flex-direction: column; justify-content: space-between; }
+.product-card { 
+    position: relative; /* Để badge absolute position */
+    border: 1px solid #ddd; 
+    border-radius: 8px; 
+    background-color: #fff; 
+    text-align: center; 
+    padding: 15px; 
+    transition: all 0.3s ease; 
+    display: flex; 
+    flex-direction: column; 
+    justify-content: space-between; 
+}
 .product-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15); transform: translateY(-5px); }
+
+/* Badge hết hàng */
+.out-of-stock-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #ef4444;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 12px;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+}
+
+/* Badge tồn kho thấp */
+.low-stock-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #f59e0b;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 11px;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+}
+
+/* Style khi sản phẩm hết hàng */
+.product-card.out-of-stock {
+    opacity: 0.7;
+    background: #f8f9fa;
+}
+
+.product-card.out-of-stock .product-image {
+    filter: grayscale(40%);
+    opacity: 0.8;
+}
+
+.product-card.out-of-stock .product-name {
+    color: #6c757d;
+}
+
+.product-card.out-of-stock .product-price {
+    color: #adb5bd;
+}
+
 .product-link { text-decoration: none; color: inherit; }
 .product-image { width: 100%; max-width: 200px; height: auto; aspect-ratio: 1 / 1; object-fit: cover; margin: 0 auto 15px; }
 .product-name { font-size: 16px; font-weight: 600; color: #333; margin: 0 0 10px; }
 .product-price { font-size: 18px; font-weight: bold; color: #d70018; margin: 0 0 15px; }
 .add-to-cart-btn { background: linear-gradient(to right, #fa5e9a, #00b4d8); color: #fff; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; text-transform: uppercase; transition: opacity 0.3s; }
 .add-to-cart-btn:hover { opacity: 0.85; }
+
+/* Nút disabled khi hết hàng */
+.add-to-cart-btn:disabled {
+    background: #cbd5e0;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.add-to-cart-btn:disabled:hover {
+    opacity: 0.6;
+}
 
 /* ==================================================
    FOOTER - Tối ưu hóa

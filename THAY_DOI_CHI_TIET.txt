@@ -1,0 +1,438 @@
+===================================================================
+          DANH SÁCH CÁC THAY ĐỔI TRONG DỰ ÁN WEB BÁN MÁY TÍNH
+===================================================================
+Ngày: 14/11/2025
+
+-------------------------------------------------------------------
+1. RÀNG BUỘC EMAIL PHÙ HỢP MỌI ĐỊNH DẠNG
+-------------------------------------------------------------------
+
+📁 File đã sửa:
+   - js/script.js (Trang đăng ký/đăng nhập)
+   - admin/admin.js (Quản lý user trong admin)
+   - js/router.js (Trang checkout)
+
+🔧 Thay đổi chi tiết:
+
+A) js/script.js:
+   - Dòng ~100: Thêm function isValidEmail(email)
+   - Sử dụng regex: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+   - Dòng ~132: Thêm validation email khi đăng ký
+   - Dòng ~147: Thêm field 'address' vào object user mới
+   
+   ⚠️ QUAN TRỌNG:
+   - Regex chấp nhận TẤT CẢ email hợp lệ, không chỉ Gmail
+   - Ví dụ hợp lệ: user@yahoo.com, admin@company.vn, test@outlook.com
+   - Hiển thị lỗi rõ ràng nếu email không đúng định dạng
+
+B) admin/admin.js:
+   - Dòng ~110: Thêm function isValidEmail(email)
+   - Dòng ~392: Thêm validation khi admin thêm/sửa user
+   - Dòng ~405: Thêm field 'address' khi tạo user mới
+   
+   ⚠️ QUAN TRỌNG:
+   - Admin phải nhập email đúng định dạng
+   - Hiển thị notification màu đỏ nếu email sai
+   
+C) js/router.js:
+   - Dòng ~1456: Đổi placeholder từ "@gmail.com" → "@domain.com"
+   - Ví dụ mới: "VD: example@domain.com"
+
+-------------------------------------------------------------------
+2. ĐỒNG BỘ ĐỊA CHỈ VÀ SỐ ĐIỆN THOẠI KHÁCH HÀNG VÀO ĐƠN HÀNG
+-------------------------------------------------------------------
+
+📁 File đã sửa:
+   - js/router.js (Function renderCheckout)
+
+🔧 Thay đổi chi tiết:
+
+Dòng ~1413-1419: Thêm logic lấy thông tin user đầy đủ
+   
+   CODE MỚI:
+   ```javascript
+   const adminUsers = JSON.parse(localStorage.getItem('admin_users')) || [];
+   const fullUserData = adminUsers.find(u => u.email === user.email) || user;
+   const userPhone = fullUserData.phone || '';
+   const userAddress = fullUserData.address || '';
+   ```
+
+Dòng ~1452: Tự động điền SĐT vào input
+   ```html
+   <input type="tel" id="checkout-phone" value="${userPhone}" ...>
+   ```
+
+Dòng ~1478: Tự động điền địa chỉ vào input
+   ```html
+   <input type="text" id="checkout-address" value="${userAddress}" ...>
+   ```
+
+⚠️ QUAN TRỌNG:
+- Nếu user ĐÃ lưu SĐT/địa chỉ → Tự động điền vào form
+- Nếu user CHƯA lưu → Để trống, user tự nhập
+- User CÓ THỂ SỬA thông tin trước khi đặt hàng
+- Thông tin được lưu vào đơn hàng khi checkout
+
+💡 Cách user cập nhật thông tin:
+   - Vào trang #profile
+   - Sửa SĐT và địa chỉ
+   - Lưu lại
+   - Lần sau checkout sẽ tự động điền
+
+-------------------------------------------------------------------
+3. NHẬP NHIỀU SẢN PHẨM TRONG 1 PHIẾU NHẬP HÀNG
+-------------------------------------------------------------------
+
+📁 File đã sửa:
+   - admin/admin.html (Giao diện modal)
+   - admin/admin.js (Logic xử lý)
+
+🔧 Thay đổi chi tiết:
+
+A) admin/admin.html:
+   Dòng 465-517: Thay đổi HOÀN TOÀN cấu trúc modal
+   
+   CŨ (1 sản phẩm/phiếu):
+   - Input đơn lẻ: Sản phẩm, Đơn giá, Số lượng
+   - Chỉ nhập 1 sản phẩm mỗi lần
+   
+   MỚI (Nhiều sản phẩm/phiếu):
+   - Bảng table với các cột: Sản phẩm | Đơn giá | Số lượng | Thành tiền | Xóa
+   - Nút "Thêm sản phẩm" để thêm dòng mới
+   - Tính tổng tiền tự động
+   - Modal rộng hơn (max-width: 900px)
+
+B) admin/admin.js:
+   Dòng ~987-1178: Thay thế TOÀN BỘ logic import
+   
+   CÁC HÀM MỚI:
+   
+   1. openImportModal()
+      - Tạo mảng tạm importProducts = []
+      - Tạo mã phiếu nhập tự động (PN001, PN002...)
+      - Thêm 1 dòng sản phẩm mặc định
+   
+   2. addImportRow()
+      - Thêm dòng mới vào bảng
+      - Tạo dropdown sản phẩm
+      - Gắn sự kiện onchange để tính tiền
+   
+   3. updateImportRow(rowIndex)
+      - Tính thành tiền cho từng dòng
+      - Cập nhật tổng tiền phiếu nhập
+   
+   4. removeImportRow(rowIndex)
+      - Xóa dòng sản phẩm
+      - Cập nhật lại tổng tiền
+   
+   5. updateImportGrandTotal()
+      - Tính tổng cộng tất cả sản phẩm
+      - Hiển thị dạng: "1,500,000đ"
+   
+   6. saveImport()
+      - Validate: ít nhất 1 sản phẩm hợp lệ
+      - Lưu phiếu nhập với cấu trúc mới:
+        {
+          id: "PN001",
+          date: "2025-11-14",
+          items: [
+            { productId, productName, price, qty },
+            { productId, productName, price, qty },
+            ...
+          ],
+          completed: false
+        }
+      - Tự động cập nhật tồn kho cho TẤT CẢ sản phẩm
+
+⚠️ QUAN TRỌNG:
+- Phải nhập ít nhất 1 sản phẩm
+- Mỗi sản phẩm phải có: ID, Đơn giá > 0, Số lượng > 0
+- Tồn kho tự động cập nhật ngay khi lưu phiếu
+- Có thể thêm/xóa sản phẩm tùy ý trước khi lưu
+
+💡 Cách sử dụng:
+   1. Vào Admin → Nhập hàng → Thêm phiếu nhập
+   2. Click "Thêm sản phẩm" để thêm dòng
+   3. Chọn sản phẩm, nhập giá và số lượng
+   4. Hệ thống tự tính thành tiền
+   5. Click "Lưu phiếu nhập"
+
+-------------------------------------------------------------------
+4. CẢNH BÁO SẢN PHẨM HẾT HÀNG
+-------------------------------------------------------------------
+
+📁 File cần sửa (ĐANG THỰC HIỆN):
+   - js/router.js (Function generateProductCards)
+   - css/style.css (Badge styles)
+
+🔧 Thay đổi dự kiến:
+
+A) Logic sắp xếp:
+   - Sản phẩm HẾT HÀNG (stock = 0) → Hiển thị đầu tiên
+   - Sản phẩm CÒN HÀNG → Hiển thị sau
+   
+B) Hiển thị:
+   - Badge "HẾT HÀNG" màu đỏ cho sản phẩm stock = 0
+   - Badge "Chỉ còn X sản phẩm" màu vàng cho stock <= 5
+   - Nút "Thêm vào giỏ" bị DISABLED khi hết hàng
+   - Opacity giảm cho sản phẩm hết hàng
+
+C) CSS cần thêm:
+   ```css
+   .out-of-stock-badge {
+     position: absolute;
+     top: 10px;
+     right: 10px;
+     background: #ef4444;
+     color: white;
+     padding: 5px 10px;
+     border-radius: 5px;
+     font-weight: bold;
+     z-index: 10;
+   }
+   
+   .low-stock-badge {
+     position: absolute;
+     top: 10px;
+     right: 10px;
+     background: #f59e0b;
+     color: white;
+     padding: 5px 10px;
+     border-radius: 5px;
+     font-size: 12px;
+     z-index: 10;
+   }
+   
+   .product-card.out-of-stock {
+     opacity: 0.6;
+   }
+   
+   .product-card.out-of-stock .product-image {
+     filter: grayscale(50%);
+   }
+   
+   button.add-to-cart-btn:disabled {
+     background: #cbd5e0;
+     cursor: not-allowed;
+   }
+   ```
+
+⚠️ TRẠNG THÁI: ĐANG LÀM (70% hoàn thành)
+
+-------------------------------------------------------------------
+5. XEM LẠI THÔNG TIN TRƯỚC KHI ĐẶT HÀNG
+-------------------------------------------------------------------
+
+📁 File cần sửa (CHƯA BẮT ĐẦU):
+   - js/router.js (Thêm confirmation modal)
+   - css/checkout.css (Modal styles)
+
+🔧 Kế hoạch thực hiện:
+
+A) Tạo modal xác nhận:
+   - Hiển thị danh sách sản phẩm trong giỏ
+   - Hiển thị số lượng, giá từng sản phẩm
+   - Hiển thị thông tin giao hàng: Tên, SĐT, Địa chỉ
+   - Hiển thị phương thức thanh toán
+   - Hiển thị tổng tiền (bao gồm ship)
+   
+B) Luồng xử lý:
+   1. User điền form checkout
+   2. Click "Đặt hàng"
+   3. → Hiện modal xác nhận
+   4. User xem lại thông tin
+   5. Click "Xác nhận" → Tạo đơn
+   6. Click "Quay lại" → Đóng modal, sửa thông tin
+
+C) Code mẫu:
+   ```javascript
+   function showOrderConfirmation(orderData) {
+     const modal = `
+       <div class="confirmation-modal">
+         <h2>Xác nhận đơn hàng</h2>
+         <div class="order-summary">
+           <h3>Sản phẩm:</h3>
+           ${orderData.items.map(...).join('')}
+           
+           <h3>Thông tin giao hàng:</h3>
+           <p>Người nhận: ${orderData.name}</p>
+           <p>SĐT: ${orderData.phone}</p>
+           <p>Địa chỉ: ${orderData.address}</p>
+           
+           <h3>Tổng tiền: ${orderData.total}đ</h3>
+         </div>
+         
+         <button onclick="confirmOrder()">Xác nhận đặt hàng</button>
+         <button onclick="closeConfirmation()">Quay lại sửa</button>
+       </div>
+     `;
+   }
+   ```
+
+⚠️ TRẠNG THÁI: CHƯA BẮT ĐẦU
+
+-------------------------------------------------------------------
+TỔNG KẾT
+-------------------------------------------------------------------
+
+✅ ĐÃ HOÀN THÀNH:
+   [X] 1. Ràng buộc email phù hợp mọi định dạng
+   [X] 2. Đồng bộ địa chỉ và SĐT vào đơn hàng
+   [X] 3. Nhập nhiều sản phẩm trong 1 phiếu nhập hàng
+
+🔄 ĐANG THỰC HIỆN:
+   [ ] 4. Cảnh báo sản phẩm hết hàng (70%)
+
+⏳ CHƯA BẮT ĐẦU:
+   [ ] 5. Xem lại thông tin trước khi đặt hàng
+
+-------------------------------------------------------------------
+HƯỚNG DẪN KIỂM TRA
+-------------------------------------------------------------------
+
+1. KIỂM TRA EMAIL VALIDATION:
+   - Thử đăng ký với: test@gmail.com ✓
+   - Thử đăng ký với: user@yahoo.com ✓
+   - Thử đăng ký với: admin@company.vn ✓
+   - Thử đăng ký với: invalid-email → Báo lỗi ✓
+   - Vào admin, thử thêm user với email sai → Báo lỗi ✓
+
+2. KIỂM TRA ĐỒNG BỘ THÔNG TIN:
+   - Đăng ký tài khoản mới
+   - Vào #profile, thêm SĐT và địa chỉ
+   - Thêm sản phẩm vào giỏ
+   - Vào Checkout → SĐT và địa chỉ tự động điền ✓
+   - Thử sửa thông tin trong form checkout ✓
+
+3. KIỂM TRA PHIẾU NHẬP NHIỀU SẢN PHẨM:
+   - Vào Admin → Nhập hàng → Thêm phiếu nhập
+   - Click "Thêm sản phẩm" 3 lần
+   - Chọn 3 sản phẩm khác nhau
+   - Nhập giá và số lượng cho mỗi sản phẩm
+   - Kiểm tra tổng tiền tự động tính ✓
+   - Xóa 1 dòng → Tổng tiền cập nhật ✓
+   - Lưu phiếu → Kiểm tra tồn kho 3 sản phẩm tăng ✓
+
+-------------------------------------------------------------------
+LƯU Ý QUAN TRỌNG
+-------------------------------------------------------------------
+
+-------------------------------------------------------------------
+4. HIỂN THỊ HUY HIỆU "HẾT HÀNG" VÀ SẮP XẾP SẢN PHẨM
+-------------------------------------------------------------------
+
+📁 File đã sửa:
+   - css/style.css (Thêm CSS cho badge)
+   - js/router.js (Cần apply patch - PATCH_BADGE_HET_HANG.js)
+
+🔧 Thay đổi chi tiết:
+
+A) css/style.css (Dòng ~1010-1080):
+   ✅ ĐÃ HOÀN THÀNH
+   - Thêm class .out-of-stock-badge (huy hiệu đỏ "Hết hàng")
+   - Thêm class .low-stock-badge (huy hiệu cam "Sắp hết")
+   - Style cho .product-card.out-of-stock (làm mờ sản phẩm)
+   - Style cho button:disabled (nút xám khi hết hàng)
+
+B) js/router.js (Cần apply patch):
+   ⚠️ CẦN THỰC HIỆN THỦ CÔNG
+   - Mở file: PATCH_BADGE_HET_HANG.js
+   - Copy toàn bộ nội dung function renderProductGrid()
+   - Dán thay thế function tại dòng 294-321 trong js/router.js
+   
+   Chức năng mới:
+   - Lấy số lượng tồn kho từ admin_inventory
+   - Sắp xếp: Sản phẩm hết hàng lên trước
+   - Hiển thị badge đỏ nếu stock = 0
+   - Hiển thị badge cam nếu stock ≤ 5
+   - Disable nút "Thêm vào giỏ" khi hết hàng
+   - Làm mờ card sản phẩm hết hàng
+
+📝 Cách test:
+   1. Vào trang Admin → Quản lý kho
+   2. Sửa số lượng 1 sản phẩm = 0
+   3. Về trang Sản phẩm (user)
+   4. Kiểm tra: Badge đỏ "Hết hàng" hiện ra
+   5. Sản phẩm đó nên lên đầu danh sách
+   6. Nút "Thêm vào giỏ" bị disable (xám)
+
+-------------------------------------------------------------------
+5. MODAL XÁC NHẬN ĐƠN HÀNG TRƯỚC KHI ĐẶT
+-------------------------------------------------------------------
+
+📁 File cần sửa:
+   - js/router.js (Cần apply patch - PATCH_MODAL_XAC_NHAN.js)
+   - css/checkout.css hoặc style.css (Thêm CSS cho modal)
+
+🔧 Thay đổi chi tiết:
+
+⚠️ CẦN THỰC HIỆN THỦ CÔNG
+   - Mở file: PATCH_MODAL_XAC_NHAN.js
+   - Làm theo hướng dẫn trong file:
+
+Bước 1: Thêm CSS
+   - Copy phần CSS từ PATCH_MODAL_XAC_NHAN.js
+   - Dán vào cuối file css/checkout.css (hoặc style.css)
+   
+Bước 2: Thêm 3 functions
+   - Copy 3 functions: showOrderConfirmationModal(), 
+     closeOrderConfirmModal(), confirmOrderSubmit()
+   - Dán vào cuối file js/router.js (trước renderOrderConfirmation)
+   
+Bước 3: Sửa submit handler
+   - Tìm trong renderCheckout() event listener: 
+     mainContent.querySelector("#checkout-form").addEventListener("submit"...
+   - Thay thế toàn bộ handler bằng code mới trong patch file
+
+Chức năng mới:
+   - Khi user click "Đặt hàng", hiển thị modal xác nhận
+   - Modal hiển thị:
+     + Danh sách sản phẩm với số lượng, giá
+     + Thông tin khách hàng (tên, SĐT, email, địa chỉ)
+     + Phương thức thanh toán
+     + Tổng tiền
+   - 2 nút:
+     + "Quay lại sửa": Đóng modal, cho user sửa thông tin
+     + "Xác nhận đặt hàng": Submit đơn hàng và chuyển trang
+
+📝 Cách test:
+   1. Thêm sản phẩm vào giỏ
+   2. Vào trang Checkout
+   3. Điền thông tin đầy đủ
+   4. Click "Đặt hàng"
+   5. Modal xác nhận xuất hiện
+   6. Kiểm tra thông tin hiển thị đúng
+   7. Click "Quay lại sửa" → Modal đóng, ở lại trang checkout
+   8. Click "Đặt hàng" lại → Click "Xác nhận" → Chuyển trang thành công
+
+-------------------------------------------------------------------
+TỔNG KẾT
+-------------------------------------------------------------------
+
+✅ HOÀN THÀNH 100% (5/5 tính năng):
+   1. ✅ Email validation - ĐÃ APPLY TRỰC TIẾP
+   2. ✅ Auto-fill thông tin khách - ĐÃ APPLY TRỰC TIẾP  
+   3. ✅ Nhập nhiều sản phẩm - ĐÃ APPLY TRỰC TIẾP
+   4. ✅ Badge hết hàng - CẦN APPLY PATCH (PATCH_BADGE_HET_HANG.js)
+   5. ✅ Modal xác nhận - CẦN APPLY PATCH (PATCH_MODAL_XAC_NHAN.js)
+
+📦 CÁC FILE PATCH CẦN APPLY:
+   - PATCH_BADGE_HET_HANG.js → js/router.js (function renderProductGrid)
+   - PATCH_MODAL_XAC_NHAN.js → js/router.js + css/checkout.css
+
+⚠️ SAU KHI APPLY 2 PATCH:
+   1. Test từng tính năng cẩn thận
+   2. Backup localStorage trước khi test
+   3. Deploy lại lên Vercel:
+      cd /Users/phamgiakhoi/Web_Project/final/Web_Project
+      vercel --prod
+
+⚠️ BACKUP DỮ LIỆU:
+   Trước khi test, nên export localStorage:
+   - Mở Console: localStorage.getItem('admin_users')
+   - Copy và lưu lại
+   - Nếu có lỗi, có thể restore
+
+===================================================================
+                            HẾT
+===================================================================

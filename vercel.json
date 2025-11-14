@@ -1,48 +1,19 @@
 {
-  "version": 2,
-  "name": "web-project",
-  "builds": [
+  "rewrites": [
     {
-      "src": "main/index.html",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/",
-      "dest": "/main/index.html"
+      "source": "/",
+      "destination": "/main/index.html"
     },
     {
-      "src": "/admin",
-      "dest": "/admin/admin.html"
+      "source": "/admin",
+      "destination": "/admin/admin.html"
     },
     {
-      "src": "/login",
-      "dest": "/login/index.html"
-    },
-    {
-      "src": "/main",
-      "dest": "/main/index.html"
-    },
-    {
-      "src": "/(css|js|img)/(.*)",
-      "dest": "/$1/$2"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
+      "source": "/login",
+      "destination": "/login/index.html"
     }
   ],
   "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
-        }
-      ]
-    },
     {
       "source": "/css/(.*)",
       "headers": [

@@ -18,7 +18,8 @@ function login(userData) {
 function logout() {
     sessionStorage.removeItem(USER_SESSION_KEY);
     // Tải lại trang để cập nhật giao diện header và các trạng thái khác.
-    window.location.href = 'index.html'; 
+    window.location.hash = '#home';
+    window.location.reload();
 }
 
 /**

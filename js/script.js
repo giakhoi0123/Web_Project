@@ -102,6 +102,14 @@ function checkPasswordStrength(password) {
   return { strength, feedback };
 }
 
+// === Hàm kiểm tra định dạng email hợp lệ ===
+function isValidEmail(email) {
+  // Regex chấp nhận mọi email hợp lệ, không chỉ Gmail
+  // Định dạng: username@domain.extension
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
 // === Hàm hiện Popup ===
 function showPopup(message, duration = 2000) {
   const popup = document.getElementById("popup");
@@ -122,6 +130,12 @@ signUpForm.addEventListener("submit", (e) => {
 
   if (!name || !email || !password) {
     showPopup("⚠️ Vui lòng điền đầy đủ thông tin!");
+    return;
+  }
+
+  // Kiểm tra định dạng email
+  if (!isValidEmail(email)) {
+    showPopup("❌ Email không hợp lệ! Vui lòng nhập email đúng định dạng (vd: example@domain.com)", 4000);
     return;
   }
 
@@ -147,7 +161,8 @@ signUpForm.addEventListener("submit", (e) => {
     id: newId, 
     name, 
     email, 
-    phone: "", 
+    phone: "", // SĐT để trống, user có thể cập nhật sau
+    address: "", // Địa chỉ để trống, user có thể cập nhật sau
     password, 
     active: true 
   });
