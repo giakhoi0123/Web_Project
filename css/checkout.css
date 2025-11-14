@@ -267,3 +267,173 @@
         margin-left: 10px;
     }
 }
+
+/* ========================================
+   MODAL XÁC NHẬN ĐƠN HÀNG
+   ======================================== */
+
+.order-confirmation-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+}
+
+.order-confirmation-modal.show {
+    display: flex;
+}
+
+.order-confirm-content {
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.order-confirm-content h2 {
+    margin: 0 0 20px;
+    color: #333;
+    font-size: 24px;
+    border-bottom: 2px solid #00b4d8;
+    padding-bottom: 10px;
+}
+
+.order-confirm-section {
+    margin: 20px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.order-confirm-section h3 {
+    margin: 0 0 15px;
+    color: #667eea;
+    font-size: 18px;
+}
+
+.order-confirm-section p {
+    margin: 8px 0;
+    color: #333;
+    line-height: 1.6;
+}
+
+.confirm-product-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.confirm-product-item:last-child {
+    border-bottom: none;
+}
+
+.confirm-product-name {
+    flex: 1;
+}
+
+.confirm-product-name strong {
+    color: #333;
+    display: block;
+}
+
+.confirm-product-name .product-details {
+    font-size: 14px;
+    color: #666;
+    margin-top: 4px;
+}
+
+.confirm-product-price {
+    font-weight: bold;
+    color: #d70018;
+    text-align: right;
+    min-width: 120px;
+}
+
+.confirm-total {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 2px solid #333;
+    font-size: 20px;
+    font-weight: bold;
+    color: #d70018;
+    text-align: right;
+}
+
+.order-confirm-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 25px;
+}
+
+.btn-confirm-order {
+    flex: 1;
+    background: linear-gradient(to right, #10b981, #059669);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-confirm-order:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.btn-cancel-order {
+    flex: 1;
+    background: #e2e8f0;
+    color: #333;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-cancel-order:hover {
+    background: #cbd5e0;
+}
+
+@media (max-width: 600px) {
+    .order-confirm-content {
+        margin: 20px;
+        padding: 20px;
+        max-height: 90vh;
+    }
+    
+    .order-confirm-content h2 {
+        font-size: 20px;
+    }
+    
+    .order-confirm-actions {
+        flex-direction: column;
+    }
+}

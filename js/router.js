@@ -1315,6 +1315,13 @@ function renderProfile() {
     return;
   }
   const user = getLoggedInUser();
+  
+  // Lấy thông tin đầy đủ từ admin_users (nếu có)
+  const adminUsers = JSON.parse(localStorage.getItem('admin_users')) || [];
+  const fullUserData = adminUsers.find(u => u.email === user.email) || user;
+  const userPhone = fullUserData.phone || '';
+  const userAddress = fullUserData.address || '';
+  
   mainContent.innerHTML = `
         <div class="profile-container">
             <h2>Thông tin tài khoản</h2>
@@ -1322,9 +1329,7 @@ function renderProfile() {
             <form id="profile-form">
                 <div class="form-group">
                     <label for="profile-email">Email</label>
-                    <input type="email" id="profile-email" value="${
-                      user.email
-                    }" disabled>
+                    <input type="email" id="profile-email" value="${user.email}" disabled>
                 </div>
                 <div class="form-group">
                     <label for="profile-name">Họ và tên</label>
@@ -1332,11 +1337,11 @@ function renderProfile() {
                 </div>
                 <div class="form-group">
                     <label for="profile-phone">Số điện thoại</label>
-                    <input type="tel" id="profile-phone" placeholder="Chưa cập nhật">
+                    <input type="tel" id="profile-phone" placeholder="Chưa cập nhật" value="${userPhone}">
                 </div>
                 <div class="form-group">
                     <label for="profile-address">Địa chỉ</label>
-                    <input type="text" id="profile-address" placeholder="Chưa cập nhật">
+                    <input type="text" id="profile-address" placeholder="Chưa cập nhật" value="${userAddress}">
                 </div>
                 <button type="submit" class="btn-update-profile">Cập nhật thông tin</button>
             </form>
@@ -1359,10 +1364,55 @@ function renderProfile() {
             </form>
         </div>
     `;
+    
+  // XỬ LÝ CẬP NHẬT THÔNG TIN
   mainContent.querySelector("#profile-form").addEventListener("submit", (e) => {
     e.preventDefault();
-    showPopup("Đã cập nhật thông tin! (Giả lập)", 2000);
+    
+    const newName = document.getElementById("profile-name").value.trim();
+    const newPhone = document.getElementById("profile-phone").value.trim();
+    const newAddress = document.getElementById("profile-address").value.trim();
+    
+    // Validate phone (nếu có nhập)
+    if (newPhone && !/^[0-9]{10,11}$/.test(newPhone)) {
+        showPopup("❌ Số điện thoại phải có 10-11 chữ số!", 2500);
+        return;
+    }
+    
+    // Cập nhật sessionStorage (user hiện tại)
+    user.name = newName;
+    sessionStorage.setItem('loggedInUser', JSON.stringify(user));
+    
+    // Cập nhật vào admin_users (để lưu phone và address)
+    const adminUsers = JSON.parse(localStorage.getItem('admin_users')) || [];
+    const userIndex = adminUsers.findIndex(u => u.email === user.email);
+    
+    if (userIndex !== -1) {
+        // User đã có trong admin_users → Cập nhật
+        adminUsers[userIndex].name = newName;
+        adminUsers[userIndex].phone = newPhone;
+        adminUsers[userIndex].address = newAddress;
+    } else {
+        // User chưa có trong admin_users → Thêm mới
+        adminUsers.push({
+            id: adminUsers.length + 1,
+            name: newName,
+            email: user.email,
+            phone: newPhone,
+            address: newAddress,
+            password: user.password,
+            active: true
+        });
+    }
+    
+    localStorage.setItem('admin_users', JSON.stringify(adminUsers));
+    
+    showPopup("✅ Đã cập nhật thông tin!", 2000);
+    
+    // Cập nhật header hiển thị tên mới
+    updateUserDisplay();
   });
+  
   mainContent
     .querySelector("#change-password-form")
     .addEventListener("submit", (e) => {
@@ -1385,6 +1435,15 @@ function renderProfile() {
       if (oldPass === storedUser.password) {
         storedUser.password = newPass;
         localStorage.setItem("user", JSON.stringify(storedUser));
+        
+        // Cập nhật password trong admin_users
+        const adminUsers = JSON.parse(localStorage.getItem('admin_users')) || [];
+        const userIndex = adminUsers.findIndex(u => u.email === user.email);
+        if (userIndex !== -1) {
+            adminUsers[userIndex].password = newPass;
+            localStorage.setItem('admin_users', JSON.stringify(adminUsers));
+        }
+        
         showPopup("✅ Đổi mật khẩu thành công!");
         document.getElementById("old-password").value = "";
         document.getElementById("new-password-profile").value = "";
@@ -1553,130 +1612,26 @@ function renderCheckout() {
         return;
       }
       
-      const user = getLoggedInUser();
-      const orderId = new Date().getTime();
-
-      // Build order items from cart with product lookup
+      // Thu thập dữ liệu đơn hàng
       const cartItems = getCart();
-      const adminItems = cartItems.map((it) => {
-        const prod = products.find((p) => p.id === it.id) || {};
-        return {
-          productId: it.id,
-          productName: prod.name || (it.name || "Unknown"),
-          qty: it.quantity,
-          price: prod.price ? Number(prod.price) : 0,
-        };
-      });
-
-      const newOrder = {
-        id: orderId,
-        date: new Date().toLocaleDateString("vi-VN"),
+      const city = mainContent.querySelector("#checkout-city").value;
+      const cityText = mainContent.querySelector("#checkout-city option:checked").textContent;
+      const address = mainContent.querySelector("#checkout-address").value.trim();
+      const fullAddress = `${address}, ${cityText}`;
+      
+      const orderData = {
+        customer: mainContent.querySelector("#checkout-name").value.trim(),
+        phone: phoneValue,
+        email: mainContent.querySelector("#checkout-email").value.trim(),
+        address: address,
+        fullAddress: fullAddress,
+        note: mainContent.querySelector("#note").value.trim(),
         items: cartItems,
-        total: totalAmount + ShipCod,
-        customer: mainContent.querySelector("#checkout-name").value,
-        address: mainContent.querySelector("#checkout-address").value,
+        total: totalAmount + ShipCod
       };
-
-      // Per-user order history (existing behavior)
-      const orderHistoryKey = `order-history_${user.email}`;
-      const history = JSON.parse(localStorage.getItem(orderHistoryKey)) || [];
-      history.push(newOrder);
-      localStorage.setItem(orderHistoryKey, JSON.stringify(history));
-
-      // --- Sync to admin storage: create admin order and update inventory ---
-      try {
-        // Create admin order entry
-        const adminOrdersKey = 'admin_orders';
-        const adminOrders = JSON.parse(localStorage.getItem(adminOrdersKey)) || [];
-        // Try to map to an admin user id (if available)
-        const adminUsers = JSON.parse(localStorage.getItem('admin_users')) || [];
-        const matched = adminUsers.find(u => u.email === user.email || u.email === newOrder.customer);
-        const adminCustomerId = matched ? matched.id : null;
-
-        const adminOrder = {
-          id: `DH${orderId}`,
-          date: new Date().toLocaleDateString("vi-VN"),
-          customer: newOrder.customer || user.name || user.email,
-          customerId: adminCustomerId,
-          total: newOrder.total,
-          status: 'Mới đặt',
-          items: adminItems,
-        };
-
-        adminOrders.push(adminOrder);
-        localStorage.setItem(adminOrdersKey, JSON.stringify(adminOrders));
-
-        // ========================================
-        // CẬP NHẬT DOANH THU
-        // ========================================
-        const revenueKey = 'admin_revenue';
-        let revenue = JSON.parse(localStorage.getItem(revenueKey)) || {
-            total: 0,
-            byDate: {},
-            byMonth: {},
-            byYear: {}
-        };
-
-        const orderDate = new Date().toLocaleDateString('vi-VN');
-        const orderMonth = new Date().toLocaleDateString('vi-VN', { year: 'numeric', month: '2-digit' });
-        const orderYear = new Date().getFullYear().toString();
-        const orderTotal = newOrder.total;
-
-        // Tổng doanh thu
-        revenue.total += orderTotal;
-
-        // Doanh thu theo ngày
-        if (!revenue.byDate[orderDate]) {
-            revenue.byDate[orderDate] = 0;
-        }
-        revenue.byDate[orderDate] += orderTotal;
-
-        // Doanh thu theo tháng
-        if (!revenue.byMonth[orderMonth]) {
-            revenue.byMonth[orderMonth] = 0;
-        }
-        revenue.byMonth[orderMonth] += orderTotal;
-
-        // Doanh thu theo năm
-        if (!revenue.byYear[orderYear]) {
-            revenue.byYear[orderYear] = 0;
-        }
-        revenue.byYear[orderYear] += orderTotal;
-
-        localStorage.setItem(revenueKey, JSON.stringify(revenue));
-        console.log(`💰 Doanh thu +${orderTotal.toLocaleString('vi-VN')}₫ (${orderDate})`);
-        // ========================================
-
-        // Decrement admin inventory according to purchased quantities
-        const inventoryKey = 'admin_inventory';
-        const adminInventory = JSON.parse(localStorage.getItem(inventoryKey)) || [];
-
-        adminItems.forEach((it) => {
-          const inv = adminInventory.find(i => Number(i.productId) === Number(it.productId));
-          if (inv) {
-            inv.quantity = (Number(inv.quantity) || 0) - Number(it.qty);
-            // Keep quantity as integer
-            inv.quantity = Math.round(inv.quantity);
-          } else {
-            // If inventory record doesn't exist yet, create one with negative or zero quantity
-            adminInventory.push({
-              productId: it.productId,
-              productName: it.productName,
-              type: (products.find(p => p.id === it.productId)?.category || '').toUpperCase(),
-              quantity: 0 - Number(it.qty),
-            });
-          }
-        });
-
-        localStorage.setItem(inventoryKey, JSON.stringify(adminInventory));
-      } catch (err) {
-        console.error('Error syncing order to admin storage', err);
-      }
-
-      // Clear cart and finish
-      saveCart([]);
-      updateCartCounter();
-      window.location.hash = `#order-confirmation/${orderId}`;
+      
+      // Hiển thị modal xác nhận thay vì submit trực tiếp
+      showOrderConfirmationModal(orderData);
     });
 }
 
@@ -2206,4 +2161,195 @@ function renderPromotionPage(type) {
       countdownEl.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     }
   }, 1000);
+}
+
+// ========================================
+// MODAL XÁC NHẬN ĐƠN HÀNG
+// ========================================
+
+/**
+ * Hiển thị modal xác nhận đơn hàng trước khi submit
+ */
+function showOrderConfirmationModal(orderData) {
+    const modal = document.createElement('div');
+    modal.className = 'order-confirmation-modal';
+    modal.id = 'order-confirm-modal';
+    
+    const productsHTML = orderData.items.map(item => {
+        const product = products.find(p => p.id === item.id);
+        const itemTotal = parseInt(product.price) * item.quantity;
+        return `
+            <div class="confirm-product-item">
+                <div class="confirm-product-name">
+                    <strong>${product.name}</strong>
+                    <div class="product-details">
+                        ${parseInt(product.price).toLocaleString('vi-VN')}đ × ${item.quantity}
+                    </div>
+                </div>
+                <div class="confirm-product-price">
+                    ${itemTotal.toLocaleString('vi-VN')}đ
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    modal.innerHTML = `
+        <div class="order-confirm-content">
+            <h2>📋 Xác nhận đơn hàng</h2>
+            
+            <div class="order-confirm-section">
+                <h3>🛒 Sản phẩm</h3>
+                ${productsHTML}
+            </div>
+            
+            <div class="order-confirm-section">
+                <h3>📦 Thông tin giao hàng</h3>
+                <p><strong>Người nhận:</strong> ${orderData.customer}</p>
+                <p><strong>Số điện thoại:</strong> ${orderData.phone}</p>
+                <p><strong>Email:</strong> ${orderData.email}</p>
+                <p><strong>Địa chỉ:</strong> ${orderData.fullAddress}</p>
+                ${orderData.note ? `<p><strong>Ghi chú:</strong> ${orderData.note}</p>` : ''}
+            </div>
+            
+            <div class="order-confirm-section">
+                <h3>💳 Thanh toán</h3>
+                <p><strong>Phương thức:</strong> Thanh toán khi nhận hàng (COD)</p>
+                <div class="confirm-total">
+                    Tổng cộng: ${orderData.total.toLocaleString('vi-VN')}đ
+                </div>
+            </div>
+            
+            <div class="order-confirm-actions">
+                <button class="btn-cancel-order" onclick="closeOrderConfirmModal()">
+                    ← Quay lại sửa
+                </button>
+                <button class="btn-confirm-order" onclick="confirmOrderSubmit()">
+                    ✓ Xác nhận đặt hàng
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    setTimeout(() => modal.classList.add('show'), 10);
+    
+    // Lưu data để submit sau
+    window.pendingOrderData = orderData;
+}
+
+/**
+ * Đóng modal xác nhận
+ */
+function closeOrderConfirmModal() {
+    const modal = document.getElementById('order-confirm-modal');
+    if (modal) {
+        modal.classList.remove('show');
+        setTimeout(() => modal.remove(), 300);
+    }
+}
+
+/**
+ * Xác nhận và thực hiện submit đơn hàng
+ */
+function confirmOrderSubmit() {
+    const orderData = window.pendingOrderData;
+    if (!orderData) return;
+    
+    closeOrderConfirmModal();
+    
+    // XỬ LÝ SUBMIT ĐƠN HÀNG (Logic từ submit handler cũ)
+    const user = getLoggedInUser();
+    const orderId = new Date().getTime();
+    
+    const cartItems = getCart();
+    const adminItems = cartItems.map((it) => {
+        const prod = products.find((p) => p.id === it.id) || {};
+        return {
+            productId: it.id,
+            productName: prod.name || (it.name || "Unknown"),
+            qty: it.quantity,
+            price: prod.price ? Number(prod.price) : 0,
+        };
+    });
+    
+    const newOrder = {
+        id: orderId,
+        date: new Date().toLocaleDateString("vi-VN"),
+        items: cartItems,
+        total: orderData.total,
+        customer: orderData.customer,
+        address: orderData.fullAddress,
+    };
+    
+    // Lưu vào order history của user
+    const orderHistoryKey = `order-history_${user.email}`;
+    const history = JSON.parse(localStorage.getItem(orderHistoryKey)) || [];
+    history.push(newOrder);
+    localStorage.setItem(orderHistoryKey, JSON.stringify(history));
+    
+    // Sync to admin
+    try {
+        const adminOrdersKey = 'admin_orders';
+        const adminOrders = JSON.parse(localStorage.getItem(adminOrdersKey)) || [];
+        const adminUsers = JSON.parse(localStorage.getItem('admin_users')) || [];
+        const matched = adminUsers.find(u => u.email === user.email);
+        const adminCustomerId = matched ? matched.id : null;
+        
+        const adminOrder = {
+            id: `DH${orderId}`,
+            date: new Date().toLocaleDateString("vi-VN"),
+            customer: orderData.customer,
+            customerId: adminCustomerId,
+            total: orderData.total,
+            status: 'Mới đặt',
+            items: adminItems,
+        };
+        
+        adminOrders.push(adminOrder);
+        localStorage.setItem(adminOrdersKey, JSON.stringify(adminOrders));
+        
+        // Cập nhật doanh thu
+        const revenueKey = 'admin_revenue';
+        let revenue = JSON.parse(localStorage.getItem(revenueKey)) || {
+            total: 0, byDate: {}, byMonth: {}, byYear: {}
+        };
+        
+        const orderDate = new Date().toLocaleDateString('vi-VN');
+        const orderMonth = new Date().toLocaleDateString('vi-VN', { year: 'numeric', month: '2-digit' });
+        const orderYear = new Date().getFullYear().toString();
+        
+        revenue.total += orderData.total;
+        revenue.byDate[orderDate] = (revenue.byDate[orderDate] || 0) + orderData.total;
+        revenue.byMonth[orderMonth] = (revenue.byMonth[orderMonth] || 0) + orderData.total;
+        revenue.byYear[orderYear] = (revenue.byYear[orderYear] || 0) + orderData.total;
+        
+        localStorage.setItem(revenueKey, JSON.stringify(revenue));
+        
+        // Cập nhật tồn kho
+        const inventoryKey = 'admin_inventory';
+        const adminInventory = JSON.parse(localStorage.getItem(inventoryKey)) || [];
+        
+        adminItems.forEach((it) => {
+            const inv = adminInventory.find(i => Number(i.productId) === Number(it.productId));
+            if (inv) {
+                inv.quantity = Math.round((Number(inv.quantity) || 0) - Number(it.qty));
+            } else {
+                adminInventory.push({
+                    productId: it.productId,
+                    productName: it.productName,
+                    type: (products.find(p => p.id === it.productId)?.category || '').toUpperCase(),
+                    quantity: 0 - Number(it.qty),
+                });
+            }
+        });
+        
+        localStorage.setItem(inventoryKey, JSON.stringify(adminInventory));
+    } catch (err) {
+        console.error('Error syncing order', err);
+    }
+    
+    // Clear cart
+    saveCart([]);
+    updateCartCounter();
+    window.location.hash = `#order-confirmation/${orderId}`;
 }

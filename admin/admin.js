@@ -950,7 +950,19 @@ function renderImports() {
     tbody.innerHTML = '';
     
     const filtered = imports.filter(i => {
-        const matchSearch = i.id.toLowerCase().includes(search) || i.productName.toLowerCase().includes(search);
+        // Kiểm tra xem có items không (phiếu mới) hoặc productName (phiếu cũ)
+        let matchSearch = i.id.toLowerCase().includes(search);
+        
+        if (i.items && i.items.length > 0) {
+            // Phiếu nhập mới (có nhiều sản phẩm)
+            matchSearch = matchSearch || i.items.some(item => 
+                item.productName.toLowerCase().includes(search)
+            );
+        } else if (i.productName) {
+            // Phiếu nhập cũ (1 sản phẩm)
+            matchSearch = matchSearch || i.productName.toLowerCase().includes(search);
+        }
+        
         const matchStatus = !statusFilter || (statusFilter === 'completed' && i.completed) || (statusFilter === 'pending' && !i.completed);
         return matchSearch && matchStatus;
     });
@@ -961,26 +973,57 @@ function renderImports() {
     }
     
     filtered.forEach(i => {
-        const total = i.price * i.qty;
-        tbody.innerHTML += `
-            <tr>
-                <td>${i.id}</td>
-                <td>${i.date}</td>
-                <td>${i.productName}</td>
-                <td>${formatCurrency(i.price)}</td>
-                <td>${i.qty}</td>
-                <td>${formatCurrency(total)}</td>
-                <td><span class="badge ${i.completed ? 'badge-success' : 'badge-warning'}">${i.completed ? 'Hoàn thành' : 'Chưa hoàn thành'}</span></td>
-                <td>
-                    <button class="btn btn-sm btn-primary" onclick="editImport('${i.id}')" ${i.completed ? 'disabled' : ''}>
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-sm btn-success" onclick="completeImport('${i.id}')" ${i.completed ? 'disabled' : ''}>
-                        <i class="fas fa-check"></i> Hoàn thành
-                    </button>
-                </td>
-            </tr>
-        `;
+        // Xử lý cả phiếu cũ (1 sản phẩm) và phiếu mới (nhiều sản phẩm)
+        if (i.items && i.items.length > 0) {
+            // Phiếu nhập MỚI - Nhiều sản phẩm
+            const totalItems = i.items.length;
+            const grandTotal = i.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            const productsList = i.items.map(item => item.productName).join(', ');
+            const productsDisplay = totalItems > 2 
+                ? `${i.items[0].productName} + ${totalItems - 1} SP khác` 
+                : productsList;
+            
+            tbody.innerHTML += `
+                <tr>
+                    <td>${i.id}</td>
+                    <td>${i.date}</td>
+                    <td title="${productsList}">${productsDisplay}</td>
+                    <td colspan="2" class="text-center">${totalItems} sản phẩm</td>
+                    <td>${formatCurrency(grandTotal)}</td>
+                    <td><span class="badge ${i.completed ? 'badge-success' : 'badge-warning'}">${i.completed ? 'Hoàn thành' : 'Chưa hoàn thành'}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-info" onclick="viewImportDetail('${i.id}')" title="Xem chi tiết">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-success" onclick="completeImport('${i.id}')" ${i.completed ? 'disabled' : ''} title="Hoàn thành">
+                            <i class="fas fa-check"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        } else {
+            // Phiếu nhập CŨ - 1 sản phẩm (backward compatibility)
+            const total = (i.price || 0) * (i.qty || 0);
+            tbody.innerHTML += `
+                <tr>
+                    <td>${i.id}</td>
+                    <td>${i.date}</td>
+                    <td>${i.productName || 'N/A'}</td>
+                    <td>${formatCurrency(i.price || 0)}</td>
+                    <td>${i.qty || 0}</td>
+                    <td>${formatCurrency(total)}</td>
+                    <td><span class="badge ${i.completed ? 'badge-success' : 'badge-warning'}">${i.completed ? 'Hoàn thành' : 'Chưa hoàn thành'}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="editImport('${i.id}')" ${i.completed ? 'disabled' : ''}>
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-success" onclick="completeImport('${i.id}')" ${i.completed ? 'disabled' : ''}>
+                            <i class="fas fa-check"></i> Hoàn thành
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }
     });
 }
 
@@ -1204,25 +1247,138 @@ function editImport(id) {
 function completeImport(id) {
     if (confirm('Hoàn thành phiếu nhập này? Sau khi hoàn thành sẽ không thể chỉnh sửa.')) {
         const imp = imports.find(i => i.id === id);
+        if (!imp) return;
+        
         imp.completed = true;
         
-        // Update inventory
-        let stock = inventory.find(s => s.productId === imp.productId);
-        if (stock) {
-            stock.quantity += imp.qty;
-        } else {
-            const product = products_admin.find(p => p.id === imp.productId);
-            inventory.push({
-                productId: imp.productId,
-                productName: imp.productName,
-                type: product.type,
-                quantity: imp.qty
+        // Xử lý cả phiếu cũ và phiếu mới
+        if (imp.items && imp.items.length > 0) {
+            // Phiếu MỚI - Nhiều sản phẩm
+            imp.items.forEach(item => {
+                let stock = inventory.find(s => Number(s.productId) === Number(item.productId));
+                if (stock) {
+                    stock.quantity = Number(stock.quantity) + Number(item.qty);
+                } else {
+                    const product = products_admin.find(p => p.id === item.productId);
+                    inventory.push({
+                        productId: item.productId,
+                        productName: item.productName,
+                        type: product ? product.type : 'unknown',
+                        quantity: item.qty
+                    });
+                }
             });
+        } else {
+            // Phiếu CŨ - 1 sản phẩm (backward compatibility)
+            let stock = inventory.find(s => Number(s.productId) === Number(imp.productId));
+            if (stock) {
+                stock.quantity = Number(stock.quantity) + Number(imp.qty);
+            } else {
+                const product = products_admin.find(p => p.id === imp.productId);
+                inventory.push({
+                    productId: imp.productId,
+                    productName: imp.productName,
+                    type: product ? product.type : 'unknown',
+                    quantity: imp.qty
+                });
+            }
         }
         
         saveData();
         renderImports();
-        showNotification('Phiếu nhập đã hoàn thành và cập nhật vào kho!', 'success');
+        renderInventory();
+        showNotification('✅ Đã hoàn thành phiếu nhập!', 'success');
+    }
+}
+
+// Hàm xem chi tiết phiếu nhập nhiều sản phẩm
+function viewImportDetail(id) {
+    const imp = imports.find(i => i.id === id);
+    if (!imp) return;
+    
+    let detailHTML = `
+        <div style="margin-bottom: 20px;">
+            <h4>Phiếu nhập: ${imp.id}</h4>
+            <p><strong>Ngày nhập:</strong> ${imp.date}</p>
+            <p><strong>Trạng thái:</strong> <span class="badge ${imp.completed ? 'badge-success' : 'badge-warning'}">${imp.completed ? 'Hoàn thành' : 'Chưa hoàn thành'}</span></p>
+        </div>
+        <table class="table" style="width: 100%;">
+            <thead>
+                <tr>
+                    <th>Sản phẩm</th>
+                    <th>Đơn giá</th>
+                    <th>Số lượng</th>
+                    <th>Thành tiền</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    let grandTotal = 0;
+    
+    if (imp.items && imp.items.length > 0) {
+        imp.items.forEach(item => {
+            const total = item.price * item.qty;
+            grandTotal += total;
+            detailHTML += `
+                <tr>
+                    <td>${item.productName}</td>
+                    <td>${formatCurrency(item.price)}</td>
+                    <td>${item.qty}</td>
+                    <td>${formatCurrency(total)}</td>
+                </tr>
+            `;
+        });
+    } else {
+        // Phiếu cũ
+        const total = (imp.price || 0) * (imp.qty || 0);
+        grandTotal = total;
+        detailHTML += `
+            <tr>
+                <td>${imp.productName || 'N/A'}</td>
+                <td>${formatCurrency(imp.price || 0)}</td>
+                <td>${imp.qty || 0}</td>
+                <td>${formatCurrency(total)}</td>
+            </tr>
+        `;
+    }
+    
+    detailHTML += `
+            </tbody>
+            <tfoot>
+                <tr style="font-weight: bold; background: #f8f9fa;">
+                    <td colspan="3" style="text-align: right;">Tổng cộng:</td>
+                    <td>${formatCurrency(grandTotal)}</td>
+                </tr>
+            </tfoot>
+        </table>
+    `;
+    
+    // Hiển thị trong modal hoặc alert
+    const modal = document.getElementById('orderDetailModal');
+    if (modal) {
+        document.getElementById('orderDetailContent').innerHTML = detailHTML;
+        modal.classList.add('show');
+    } else {
+        // Fallback: Tạo modal tạm
+        const tempModal = document.createElement('div');
+        tempModal.className = 'modal show';
+        tempModal.style.display = 'flex';
+        tempModal.innerHTML = `
+            <div class="modal-content" style="max-width: 800px;">
+                <div class="modal-header">
+                    <h3>Chi tiết phiếu nhập</h3>
+                    <button class="close-btn" onclick="this.closest('.modal').remove()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    ${detailHTML}
+                </div>
+                <div class="modal-footer">
+                    <button class="btn" style="background: #e2e8f0; color: #333;" onclick="this.closest('.modal').remove()">Đóng</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(tempModal);
     }
 }
 
