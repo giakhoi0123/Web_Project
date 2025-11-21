@@ -1511,7 +1511,9 @@ function renderCheckout() {
                     <div class="form-grid">
                         <div>
                             <label for="checkout-name">Họ Tên*</label>
-                            <input type="text" id="checkout-name" value="${user.name}" placeholder="VD: Nguyen Văn A" required >
+                            <input type="text" id="checkout-name" value="${
+                              user.name
+                            }" placeholder="VD: Nguyen Văn A" required >
                         </div>
                         <div>
                             <label for="checkout-phone">Số Điện Thoại*</label>
@@ -1519,16 +1521,48 @@ function renderCheckout() {
                         </div>
                         <div>
                             <label for="checkout-email">Email*</label>
-                            <input type="email" id="checkout-email" value="${user.email}" placeholder="VD: example@domain.com" required>
+                            <input type="email" id="checkout-email" value="${
+                              user.email
+                            }" placeholder="VD: example@domain.com" required>
                         </div>   
                         <div>
-                            <label for="checkout-city">Thành Phố</label>
+                            <label for="checkout-city">Tỉnh Thành</label>
                             <select id="checkout-city" required>
-                              <option value="">-- Chọn thành phố --</option>
                               <option value="hanoi">Hà Nội</option>
                               <option value="hochiminh">Hồ Chí Minh</option>
+                              <option value="haiphong">Hải Phòng</option>
+                              <option value="hue">Huế</option>
                               <option value="danang">Đà Nẵng</option>
-                              <option value="nhatrang">Nha Trang</option> 
+                              <option value="cantho">Cần Thơ</option>
+                              <option value="ang">An Giang</option>
+                              <option value="bacninh">Bắc Ninh</option>
+                              <option value="bacninh_alt">Bắc Ninh (sáp nhập)</option> <!-- nếu bạn muốn phân biệt -->
+                              <option value="bacnang">Cà Mau</option>
+                              <option value="caomung">Cao Bằng</option>
+                              <option value="daklak">Đắk Lắk</option>
+                              <option value="dienbien">Điện Biên</option>
+                              <option value="dongnai">Đồng Nai</option>
+                              <option value="dongthap">Đồng Tháp</option>
+                              <option value="gialai">Gia Lai</option>
+                              <option value="hatinh">Hà Tĩnh</option>
+                              <option value="hungyen">Hưng Yên</option>
+                              <option value="khanhhoa">Khánh Hòa</option>
+                              <option value="laichau">Lai Châu</option>
+                              <option value="lamdong">Lâm Đồng</option>
+                              <option value="langson">Lạng Sơn</option>
+                              <option value="laocai">Lào Cai</option>
+                              <option value="nghean">Nghệ An</option>
+                              <option value="ninhbinh">Ninh Bình</option>
+                              <option value="phutho">Phú Thọ</option>
+                              <option value="quangngai">Quảng Ngãi</option>
+                              <option value="quangninh">Quảng Ninh</option>
+                              <option value="quangtri">Quảng Trị</option>
+                              <option value="sonla">Sơn La</option>
+                              <option value="tayninh">Tây Ninh</option>
+                              <option value="thainguyen">Thái Nguyên</option>
+                              <option value="thanhoa">Thanh Hóa</option>
+                              <option value="vinhlong">Vĩnh Long</option>
+                              <option value="cantho_alt">Vĩnh Long (sáp nhập)</option>
                             </select>
 
                         </div>
@@ -1545,21 +1579,33 @@ function renderCheckout() {
                     <div>
                         <label style="margin-top: 20px; cursor: default;">Hình Thức Thanh Toán</label>
                         <div class="box-payment">
-                            <div>
-                                <input type="radio" name="payment" checked>
-                                <i class="fa-solid fa-money-check-dollar"></i>
+                            <div class="payment-option">
+                                <input type="radio" name="payment" value="COD" id="payment-cod" checked>
+                                <label for="payment-cod">
+                                    <i class="fa-solid fa-money-check-dollar"></i>
+                                    <span>COD</span>
+                                </label>
                             </div>
-                            <div>
-                                <input type="radio" name="payment">
-                                <i class="fa-brands fa-paypal"></i>
+                            <div class="payment-option">
+                                <input type="radio" name="payment" value="PayPal" id="payment-paypal">
+                                <label for="payment-paypal">
+                                    <i class="fa-brands fa-paypal"></i>
+                                    <span>PayPal</span>
+                                </label>
                             </div>
-                            <div>
-                                <input type="radio" name="payment">
-                                <i class="fa-brands fa-apple-pay" style="font-size: 1.5em;"></i>
+                            <div class="payment-option">
+                                <input type="radio" name="payment" value="Apple Pay" id="payment-apple">
+                                <label for="payment-apple">
+                                    <i class="fa-brands fa-apple-pay" style="font-size: 1.5em;"></i>
+                                    <span>Apple Pay</span>
+                                </label>
                             </div>
-                            <div>
-                                <input type="radio" name="payment">
-                                <i class="fa-solid fa-credit-card"></i>
+                            <div class="payment-option">
+                                <input type="radio" name="payment" value="Thẻ Tín Dụng" id="payment-card">
+                                <label for="payment-card">
+                                    <i class="fa-solid fa-credit-card"></i>
+                                    <span>Thẻ</span>
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -1576,7 +1622,9 @@ function renderCheckout() {
                         <div class="divine"></div>
                         <div class="summary">
                             <div class="total">Tổng Tiền Hàng</div>
-                            <div class="total-money">${totalAmount.toLocaleString("vi-VN")}đ</div>                           
+                            <div class="total-money">${totalAmount.toLocaleString(
+                              "vi-VN"
+                            )}đ</div>                           
                         </div>
                         <div class="summary">
                             <div class="total">Tổng Vận Chuyển</div>
@@ -1585,7 +1633,9 @@ function renderCheckout() {
                         <div class="divine"></div>
                         <div class="total-summary">
                             <div class="last-total">Tổng</div>
-                            <div class="last-total">${(totalAmount + ShipCod).toLocaleString("vi-VN")}đ</div>
+                            <div class="last-total">${(
+                              totalAmount + ShipCod
+                            ).toLocaleString("vi-VN")}đ</div>
                         </div>
                     </div>
 
@@ -1619,6 +1669,10 @@ function renderCheckout() {
       const address = mainContent.querySelector("#checkout-address").value.trim();
       const fullAddress = `${address}, ${cityText}`;
       
+      // Lấy phương thức thanh toán được chọn
+      const selectedPayment = mainContent.querySelector('input[name="payment"]:checked');
+      const paymentMethod = selectedPayment ? selectedPayment.value : 'COD';
+      
       const orderData = {
         customer: mainContent.querySelector("#checkout-name").value.trim(),
         phone: phoneValue,
@@ -1626,6 +1680,7 @@ function renderCheckout() {
         address: address,
         fullAddress: fullAddress,
         note: mainContent.querySelector("#note").value.trim(),
+        paymentMethod: paymentMethod,
         items: cartItems,
         total: totalAmount + ShipCod
       };
@@ -1690,6 +1745,7 @@ function renderOrderHistory() {
                           "vi-VN"
                         )}đ</p>
                         <p><strong>Địa chỉ:</strong> ${order.address}</p>
+                        <p><strong>Phương thức thanh toán:</strong> ${order.paymentMethod || 'COD'}</p>
                         <p><strong>Sản phẩm:</strong></p>
                         <ul style="list-style: none; padding: 0;">${itemsHTML}</ul>
                     </div>
@@ -2213,7 +2269,7 @@ function showOrderConfirmationModal(orderData) {
             
             <div class="order-confirm-section">
                 <h3>💳 Thanh toán</h3>
-                <p><strong>Phương thức:</strong> Thanh toán khi nhận hàng (COD)</p>
+                <p><strong>Phương thức:</strong> ${orderData.paymentMethod || 'COD'}</p>
                 <div class="confirm-total">
                     Tổng cộng: ${orderData.total.toLocaleString('vi-VN')}đ
                 </div>
@@ -2279,6 +2335,7 @@ function confirmOrderSubmit() {
         total: orderData.total,
         customer: orderData.customer,
         address: orderData.fullAddress,
+        paymentMethod: orderData.paymentMethod || 'COD',
     };
     
     // Lưu vào order history của user
@@ -2303,6 +2360,11 @@ function confirmOrderSubmit() {
             total: orderData.total,
             status: 'Mới đặt',
             items: adminItems,
+            paymentMethod: orderData.paymentMethod || 'COD',
+            phone: orderData.phone,
+            email: orderData.email,
+            address: orderData.fullAddress,
+            note: orderData.note,
         };
         
         adminOrders.push(adminOrder);

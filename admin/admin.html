@@ -7,7 +7,7 @@
     <title>Admin - Quản lý hệ thống bán máy tính</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="admin.css">
-    <script src="../js/products.js"></script>
+    <script src="/js/products.js"></script>
 </head>
 
 <body>
@@ -260,9 +260,17 @@
                 <div class="card">
                     <div class="card-header">
                         <h3><i class="fas fa-tags"></i> Quản lý giá bán</h3>
-                        <button class="btn btn-primary btn-sm" onclick="openPricingModal()">
-                            <i class="fas fa-plus"></i> Cấu hình giá
-                        </button>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-warning btn-sm" onclick="resetPricesToDefault()" title="Reset giá về mặc định từ products.js">
+                                <i class="fas fa-undo"></i> Reset về giá gốc
+                            </button>
+                            <button class="btn btn-success btn-sm" onclick="syncAllPricingToUserSite()" title="Đồng bộ tất cả giá lên trang bán hàng">
+                                <i class="fas fa-sync-alt"></i> Đồng bộ giá lên web
+                            </button>
+                            <button class="btn btn-primary btn-sm" onclick="openPricingModal()">
+                                <i class="fas fa-plus"></i> Cấu hình giá
+                            </button>
+                        </div>
                     </div>
                     <table>
                         <thead>
@@ -321,6 +329,9 @@
                     <div class="card-header">
                         <h3><i class="fas fa-warehouse"></i> Quản lý tồn kho</h3>
                         <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-info btn-sm" onclick="setLowStockThreshold()">
+                                <i class="fas fa-sliders-h"></i> Ngưỡng cảnh báo (<span id="thresholdDisplay">5</span>)
+                            </button>
                             <button class="btn btn-warning btn-sm" onclick="showLowStockAlert()">
                                 <i class="fas fa-exclamation-triangle"></i> Sắp hết hàng
                             </button>
@@ -540,11 +551,11 @@
                 </div>
                 <div class="form-group">
                     <label>Giá vốn *</label>
-                    <input type="number" id="pricingCost" class="form-control" required>
+                    <input type="number" id="pricingCost" class="form-control" required min="0" step="1000">
                 </div>
                 <div class="form-group">
                     <label>% Lợi nhuận *</label>
-                    <input type="number" id="pricingProfit" class="form-control" required>
+                    <input type="number" id="pricingProfit" class="form-control" required min="0" max="1000" step="0.1">
                 </div>
                 <div class="form-group">
                     <label>Giá bán (tự động tính)</label>

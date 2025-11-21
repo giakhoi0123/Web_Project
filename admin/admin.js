@@ -1108,8 +1108,21 @@ function updateImportRow(rowIndex) {
     const totalCell = row.querySelector('.import-row-total');
     
     const productId = parseInt(productSelect.value) || null;
-    const price = parseInt(priceInput.value) || 0;
-    const qty = parseInt(qtyInput.value) || 0;
+    let price = parseInt(priceInput.value) || 0;
+    let qty = parseInt(qtyInput.value) || 0;
+    
+    // Validate số âm
+    if (price < 0) {
+        price = 0;
+        priceInput.value = 0;
+        showNotification('❌ Giá nhập không được là số âm!', 'error');
+    }
+    
+    if (qty < 0) {
+        qty = 0;
+        qtyInput.value = 0;
+        showNotification('❌ Số lượng không được là số âm!', 'error');
+    }
     
     // Cập nhật dữ liệu
     importProducts[rowIndex] = {
@@ -1165,6 +1178,18 @@ function saveImport() {
     if (!date) {
         showNotification('❌ Vui lòng chọn ngày nhập!', 'error');
         return;
+    }
+    
+    // Validate số âm trong danh sách
+    for (let item of validProducts) {
+        if (item.price < 0) {
+            showNotification('❌ Giá nhập không được là số âm!', 'error');
+            return;
+        }
+        if (item.qty < 0 || item.qty === 0) {
+            showNotification('❌ Số lượng phải lớn hơn 0!', 'error');
+            return;
+        }
     }
     
     // Lưu từng sản phẩm thành phiếu riêng (hoặc có thể gộp chung, tùy yêu cầu)
@@ -1462,6 +1487,17 @@ function savePricing() {
         return;
     }
     
+    // Validate số âm
+    if (cost < 0) {
+        showNotification('❌ Giá vốn không được là số âm!', 'error');
+        return;
+    }
+    
+    if (profit < 0) {
+        showNotification('❌ % Lợi nhuận không được là số âm!', 'error');
+        return;
+    }
+    
     const product = products_admin.find(p => p.id === productId);
     
     if (editingPricingId) {
@@ -1485,9 +1521,159 @@ function savePricing() {
         showNotification('Thêm cấu hình giá thành công!', 'success');
     }
     
+    // Đồng bộ giá sang trang user
+    syncPricingToUserSite(productId, cost, profit);
+    
     saveData();
     closePricingModal();
     renderPricing();
+}
+
+
+/**
+ * Reset giá về products.js gốc (xóa user_site_products)
+ */
+function resetPricesToDefault() {
+    if (!confirm('⚠️ RESET GIÁ VỀ MẶC ĐỊNH?\n\nSẽ xóa tất cả giá đã đồng bộ và quay về giá gốc trong products.js\n\nBạn có chắc chắn?')) {
+        return;
+    }
+    
+    try {
+        // Xóa user_site_products - trang user sẽ dùng giá từ products.js
+        localStorage.removeItem('user_site_products');
+        localStorage.removeItem('products_price_updated');
+        
+        showNotification('✅ Đã reset về giá gốc từ products.js!\n\nBây giờ bạn có thể đồng bộ lại từ Pricing.', 'success');
+        console.log('✅ Đã xóa user_site_products - Giá quay về products.js gốc');
+    } catch (error) {
+        showNotification('❌ Lỗi khi reset: ' + error.message, 'error');
+    }
+}
+
+/**
+ * Đồng bộ giá từ admin pricing sang trang user
+ * CHỈ cập nhật giá của sản phẩm được chỉ định
+ */
+function syncPricingToUserSite(productId, cost, profit) {
+    try {
+        // Tính giá bán
+        const sellPrice = Math.round(cost * (1 + profit / 100));
+        
+        // Đọc user_site_products hiện tại
+        let userProducts = localStorage.getItem('user_site_products');
+        
+        if (userProducts) {
+            // Đã có - CHỈ CẬP NHẬT sản phẩm này
+            userProducts = JSON.parse(userProducts);
+            const productIndex = userProducts.findIndex(p => p.id === productId);
+            
+            if (productIndex !== -1) {
+                userProducts[productIndex].price = sellPrice.toString();
+            } else {
+                // Thêm sản phẩm mới vào danh sách
+                const adminProduct = products_admin.find(p => p.id === productId);
+                if (adminProduct) {
+                    userProducts.push({
+                        id: adminProduct.id,
+                        name: adminProduct.name,
+                        price: sellPrice.toString(),
+                        image: adminProduct.image,
+                        category: adminProduct.type.toLowerCase(),
+                        specs: {}
+                    });
+                }
+            }
+            
+            localStorage.setItem('user_site_products', JSON.stringify(userProducts));
+            console.log(`✅ Đã sync giá sản phẩm ${productId}: ${formatCurrency(sellPrice)}`);
+        } else {
+            // Chưa có user_site_products - chỉ tạo cho sản phẩm này
+            const adminProduct = products_admin.find(p => p.id === productId);
+            if (adminProduct) {
+                userProducts = [{
+                    id: adminProduct.id,
+                    name: adminProduct.name,
+                    price: sellPrice.toString(),
+                    image: adminProduct.image,
+                    category: adminProduct.type.toLowerCase(),
+                    specs: {}
+                }];
+                localStorage.setItem('user_site_products', JSON.stringify(userProducts));
+                console.log(`📦 Tạo user_site_products với 1 sản phẩm: ${formatCurrency(sellPrice)}`);
+            }
+        }
+        
+        localStorage.setItem('products_price_updated', Date.now().toString());
+    } catch (error) {
+        console.error('Lỗi khi sync giá sang trang user:', error);
+    }
+}
+
+/**
+ * Đồng bộ TẤT CẢ giá từ pricing sang trang user
+ * CHỈ đồng bộ những sản phẩm có trong Pricing, GIỮ NGUYÊN giá gốc của sản phẩm khác
+ */
+function syncAllPricingToUserSite() {
+    try {
+        if (!pricing || pricing.length === 0) {
+            showNotification('❌ Chưa có cấu hình giá nào để đồng bộ!', 'error');
+            return;
+        }
+        
+        // Đọc user_site_products hiện tại (nếu có)
+        let userProducts = localStorage.getItem('user_site_products');
+        
+        if (userProducts) {
+            userProducts = JSON.parse(userProducts);
+            console.log(`📦 Đã có ${userProducts.length} sản phẩm trong user_site_products`);
+        } else {
+            // Tạo mảng rỗng - chỉ thêm sản phẩm có pricing
+            userProducts = [];
+            console.log('📦 Tạo mới user_site_products (chỉ chứa sản phẩm có pricing)');
+        }
+        
+        let syncCount = 0;
+        
+        // CHỈ cập nhật/thêm những sản phẩm có trong pricing
+        pricing.forEach(priceConfig => {
+            const sellPrice = Math.round((Number(priceConfig.cost) || 0) * (1 + (Number(priceConfig.profit) || 0) / 100));
+            const productIndex = userProducts.findIndex(p => p.id === priceConfig.productId);
+            
+            if (productIndex !== -1) {
+                // Cập nhật giá cho sản phẩm đã có
+                const oldPrice = userProducts[productIndex].price;
+                userProducts[productIndex].price = sellPrice.toString();
+                console.log(`💰 ${priceConfig.productName}: ${oldPrice} → ${formatCurrency(sellPrice)}`);
+                syncCount++;
+            } else {
+                // Thêm sản phẩm mới
+                const adminProduct = products_admin.find(p => p.id === priceConfig.productId);
+                if (adminProduct) {
+                    userProducts.push({
+                        id: adminProduct.id,
+                        name: adminProduct.name,
+                        price: sellPrice.toString(),
+                        image: adminProduct.image,
+                        category: adminProduct.type.toLowerCase(),
+                        specs: {}
+                    });
+                    console.log(`➕ ${priceConfig.productName}: ${formatCurrency(sellPrice)}`);
+                    syncCount++;
+                }
+            }
+        });
+        
+        // Lưu toàn bộ vào localStorage
+        localStorage.setItem('user_site_products', JSON.stringify(userProducts));
+        localStorage.setItem('products_price_updated', Date.now().toString());
+        
+        showNotification(`✅ Đã đồng bộ ${syncCount} giá sản phẩm lên trang bán hàng!\n\n💡 Các sản phẩm KHÔNG có trong Pricing giữ nguyên giá gốc.\n\nRefresh trang web để thấy giá mới.`, 'success');
+        console.log(`✅ Đã sync ${syncCount}/${pricing.length} giá sản phẩm`);
+        console.log(`💡 Các sản phẩm khác (không có pricing) vẫn dùng giá gốc từ products.js`);
+    } catch (error) {
+        showNotification('❌ Lỗi khi đồng bộ giá: ' + error.message, 'error');
+        console.error('Lỗi khi sync tất cả giá:', error);
+    }
 }
 
 function editPricing(id) {
@@ -1702,6 +1888,27 @@ function saveOrderStatus(id) {
 }
 
 // ===== INVENTORY =====
+
+// Ngưỡng cảnh báo (có thể tùy chỉnh)
+let lowStockThreshold = parseInt(localStorage.getItem('lowStockThreshold')) || 5;
+
+function setLowStockThreshold() {
+    const newThreshold = prompt('Nhập ngưỡng cảnh báo sắp hết hàng:', lowStockThreshold);
+    if (newThreshold && !isNaN(newThreshold) && newThreshold > 0) {
+        lowStockThreshold = parseInt(newThreshold);
+        localStorage.setItem('lowStockThreshold', lowStockThreshold);
+        
+        // Update display
+        const thresholdDisplay = document.getElementById('thresholdDisplay');
+        if (thresholdDisplay) {
+            thresholdDisplay.textContent = lowStockThreshold;
+        }
+        
+        showNotification(`✅ Đã đặt ngưỡng cảnh báo = ${lowStockThreshold}!`, 'success');
+        renderInventory();
+    }
+}
+
 function renderInventory() {
     const tbody = document.getElementById('inventoryTable');
     const search = document.getElementById('searchInventory').value.toLowerCase();
@@ -1718,7 +1925,7 @@ function renderInventory() {
     }
     
     filtered.forEach(i => {
-        const isLow = i.quantity < 5;
+        const isLow = i.quantity < lowStockThreshold;
         tbody.innerHTML += `
             <tr style="${isLow ? 'background: #fef3c7;' : ''}">
                 <td>${i.type}</td>
@@ -1738,14 +1945,14 @@ function renderInventory() {
 }
 
 function showLowStockAlert() {
-    const lowStock = inventory.filter(i => i.quantity < 5);
+    const lowStock = inventory.filter(i => i.quantity < lowStockThreshold);
     
     if (lowStock.length === 0) {
-        showNotification('Tất cả sản phẩm đều còn đủ hàng!', 'success');
+        showNotification(`Tất cả sản phẩm đều còn ≥ ${lowStockThreshold}!`, 'success');
         return;
     }
     
-    let message = '<div style="padding: 10px;"><h4 style="color: #f59e0b; margin-bottom: 15px;"><i class="fas fa-exclamation-triangle"></i> Sản phẩm sắp hết hàng</h4><ul style="list-style: none; padding: 0;">';
+    let message = `<div style="padding: 10px;"><h4 style="color: #f59e0b; margin-bottom: 15px;"><i class="fas fa-exclamation-triangle"></i> Sản phẩm sắp hết hàng (< ${lowStockThreshold})</h4><ul style="list-style: none; padding: 0;">`;
     
     lowStock.forEach(i => {
         message += `<li style="padding: 8px; margin: 5px 0; background: #fef3c7; border-radius: 5px;">
@@ -1840,9 +2047,17 @@ function generateReport() {
     
     // Filter imports
     const filteredImports = imports.filter(i => {
-        const matchProduct = !productId || i.productId === productId;
         const matchDate = i.date >= fromDate && i.date <= toDate;
-        return matchProduct && matchDate && i.completed;
+        // If productId not specified, include any completed import in date range
+        if (!productId) return matchDate && i.completed;
+
+        // If import uses new format (items array), include if any item matches productId
+        if (i.items && Array.isArray(i.items) && i.items.length > 0) {
+            return matchDate && i.completed && i.items.some(it => Number(it.productId) === Number(productId));
+        }
+
+        // Old format: top-level productId field
+        return matchDate && i.completed && Number(i.productId) === Number(productId);
     });
     
     // Filter orders
@@ -1851,8 +2066,21 @@ function generateReport() {
         return matchDate;
     });
     
-    // Calculate totals
-    const totalImport = filteredImports.reduce((sum, i) => sum + i.qty, 0);
+    // Calculate totals (handle both old and new import record formats safely)
+    let totalImport = 0;
+    filteredImports.forEach(i => {
+        if (i.items && Array.isArray(i.items) && i.items.length > 0) {
+            // Sum quantities inside items array (only those matching productId when filtered by product)
+            i.items.forEach(it => {
+                if (!productId || Number(it.productId) === Number(productId)) {
+                    totalImport += Number(it.qty) || 0;
+                }
+            });
+        } else {
+            // Old single-product import format
+            totalImport += Number(i.qty) || 0;
+        }
+    });
     
     let totalExport = 0;
     filteredOrders.forEach(o => {
@@ -1871,6 +2099,62 @@ function generateReport() {
         products_admin.find(p => p.id === productId)?.name : 
         'Tất cả sản phẩm';
     
+    // Tính toán giá vốn, giá bán, doanh thu và lợi nhuận
+    let totalCostPrice = 0;
+    let totalRevenue = 0;
+    let avgProfit = 0;
+    
+    if (productId) {
+        // Tính cho 1 sản phẩm cụ thể
+        const priceConfig = pricing.find(p => p.productId === productId);
+        if (priceConfig) {
+            const costPrice = Number(priceConfig.cost) || 0;
+            const sellPrice = Math.round(costPrice * (1 + (Number(priceConfig.profit) || 0) / 100));
+            
+            totalCostPrice = costPrice * totalImport;
+            totalRevenue = sellPrice * totalExport;
+            avgProfit = Number(priceConfig.profit) || 0;
+        }
+    } else {
+        // Tính cho tất cả sản phẩm
+        filteredImports.forEach(imp => {
+            if (imp.items && Array.isArray(imp.items)) {
+                // Format mới
+                imp.items.forEach(item => {
+                    const priceConfig = pricing.find(p => p.productId === item.productId);
+                    const costPrice = priceConfig ? (Number(priceConfig.cost) || Number(item.price) || 0) : (Number(item.price) || 0);
+                    totalCostPrice += costPrice * (Number(item.qty) || 0);
+                });
+            } else {
+                // Format cũ
+                const priceConfig = pricing.find(p => p.productId === imp.productId);
+                const costPrice = priceConfig ? (Number(priceConfig.cost) || Number(imp.price) || 0) : (Number(imp.price) || 0);
+                totalCostPrice += costPrice * (Number(imp.qty) || 0);
+            }
+        });
+        
+        // Tính doanh thu từ orders
+        filteredOrders.forEach(order => {
+            order.items.forEach(item => {
+                const priceConfig = pricing.find(p => p.productId === item.productId);
+                if (priceConfig) {
+                    const sellPrice = Math.round((Number(priceConfig.cost) || 0) * (1 + (Number(priceConfig.profit) || 0) / 100));
+                    totalRevenue += sellPrice * (Number(item.qty) || 0);
+                } else {
+                    totalRevenue += (Number(item.price) || 0) * (Number(item.qty) || 0);
+                }
+            });
+        });
+        
+        // Tính % lợi nhuận trung bình
+        if (pricing.length > 0) {
+            avgProfit = pricing.reduce((sum, p) => sum + (Number(p.profit) || 0), 0) / pricing.length;
+        }
+    }
+    
+    const totalProfit = totalRevenue - totalCostPrice;
+    const profitMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : 0;
+    
     const html = `
         <div style="background: white; padding: 20px; border-radius: 10px; border: 2px solid #667eea;">
             <h4 style="color: #667eea; margin-bottom: 15px; text-align: center;">
@@ -1880,18 +2164,48 @@ function generateReport() {
                 <div><strong>Sản phẩm:</strong> ${productName}</div>
                 <div><strong>Từ ngày:</strong> ${fromDate} <strong>đến ngày:</strong> ${toDate}</div>
             </div>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
-                <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 10px; color: white;">
-                    <div style="font-size: 14px; margin-bottom: 10px; opacity: 0.9;">Tổng nhập</div>
-                    <div style="font-size: 32px; font-weight: 600;">${totalImport}</div>
+            
+            <!-- Phần 1: Số lượng -->
+            <div style="margin-bottom: 20px;">
+                <h5 style="color: #667eea; margin-bottom: 10px;">📦 Số lượng</h5>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                    <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 10px; color: white;">
+                        <div style="font-size: 14px; margin-bottom: 10px; opacity: 0.9;">Tổng nhập</div>
+                        <div style="font-size: 32px; font-weight: 600;">${totalImport}</div>
+                    </div>
+                    <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 10px; color: white;">
+                        <div style="font-size: 14px; margin-bottom: 10px; opacity: 0.9;">Tổng xuất</div>
+                        <div style="font-size: 32px; font-weight: 600;">${totalExport}</div>
+                    </div>
+                    <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 10px; color: white;">
+                        <div style="font-size: 14px; margin-bottom: 10px; opacity: 0.9;">Tồn hiện tại</div>
+                        <div style="font-size: 32px; font-weight: 600;">${currentStock}</div>
+                    </div>
                 </div>
-                <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 10px; color: white;">
-                    <div style="font-size: 14px; margin-bottom: 10px; opacity: 0.9;">Tổng xuất</div>
-                    <div style="font-size: 32px; font-weight: 600;">${totalExport}</div>
+            </div>
+            
+            <!-- Phần 2: Tài chính -->
+            <div>
+                <h5 style="color: #667eea; margin-bottom: 10px;">💰 Tài chính</h5>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 15px;">
+                    <div style="padding: 15px; background: #f1f5f9; border-radius: 10px; border-left: 4px solid #3b82f6;">
+                        <div style="font-size: 12px; color: #64748b; margin-bottom: 5px;">Tổng giá vốn</div>
+                        <div style="font-size: 20px; font-weight: 600; color: #1e293b;">${formatCurrency(totalCostPrice)}</div>
+                    </div>
+                    <div style="padding: 15px; background: #f1f5f9; border-radius: 10px; border-left: 4px solid #10b981;">
+                        <div style="font-size: 12px; color: #64748b; margin-bottom: 5px;">Doanh thu bán</div>
+                        <div style="font-size: 20px; font-weight: 600; color: #1e293b;">${formatCurrency(totalRevenue)}</div>
+                    </div>
                 </div>
-                <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 10px; color: white;">
-                    <div style="font-size: 14px; margin-bottom: 10px; opacity: 0.9;">Tồn hiện tại</div>
-                    <div style="font-size: 32px; font-weight: 600;">${currentStock}</div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                    <div style="padding: 15px; background: ${totalProfit >= 0 ? '#d1fae5' : '#fee2e2'}; border-radius: 10px; border-left: 4px solid ${totalProfit >= 0 ? '#10b981' : '#ef4444'};">
+                        <div style="font-size: 12px; color: #64748b; margin-bottom: 5px;">Lợi nhuận</div>
+                        <div style="font-size: 20px; font-weight: 600; color: ${totalProfit >= 0 ? '#059669' : '#dc2626'};">${formatCurrency(totalProfit)}</div>
+                    </div>
+                    <div style="padding: 15px; background: #fef3c7; border-radius: 10px; border-left: 4px solid #f59e0b;">
+                        <div style="font-size: 12px; color: #64748b; margin-bottom: 5px;">Biên lợi nhuận</div>
+                        <div style="font-size: 20px; font-weight: 600; color: #d97706;">${profitMargin}%</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1903,4 +2217,235 @@ function generateReport() {
 // Initialize on page load
 window.addEventListener('load', () => {
     updateCategoryFilters();
+    
+    // Update threshold display
+    const thresholdDisplay = document.getElementById('thresholdDisplay');
+    if (thresholdDisplay) {
+        thresholdDisplay.textContent = lowStockThreshold;
+    }
 });
+
+// ===== TEST FUNCTIONS =====
+
+/**
+ * Function để test: Reset tất cả về 0, sau đó chỉ nhập 20 sản phẩm đầu tiên
+ */
+function initInventoryForTesting(quantity = 10, maxProducts = 20) {
+    if (!confirm(`⚠️ Khởi tạo dữ liệu test?\n\n- Reset TẤT CẢ tồn kho về 0\n- Chỉ nhập ${maxProducts} sản phẩm đầu với số lượng ${quantity}\n- Xóa tất cả phiếu nhập cũ\n\n(Chỉ dùng để test)`)) {
+        return;
+    }
+    
+    let inventory = JSON.parse(localStorage.getItem('admin_inventory')) || [];
+    
+    // Nếu chưa có inventory, tạo từ products_admin
+    if (inventory.length === 0 && products_admin.length > 0) {
+        inventory = products_admin.map(p => ({
+            productId: p.id,
+            productName: p.name,
+            type: p.type,
+            quantity: 0, // Reset tất cả về 0
+            lastUpdated: new Date().toISOString()
+        }));
+    } else {
+        // Reset TẤT CẢ về 0
+        inventory = inventory.map(item => ({
+            ...item,
+            quantity: 0,
+            lastUpdated: new Date().toISOString()
+        }));
+    }
+    
+    // Reset imports
+    imports = [];
+    
+    const today = new Date().toISOString().split('T')[0];
+    const importCode = 'PN001';
+    
+    // Chỉ lấy 20 sản phẩm đầu tiên để tạo phiếu nhập
+    const selectedProducts = inventory.slice(0, maxProducts);
+    
+    if (selectedProducts.length === 0) {
+        showNotification('❌ Không có sản phẩm nào để nhập!', 'error');
+        return;
+    }
+    
+    // Tạo 1 phiếu nhập duy nhất với 20 sản phẩm (format mới - items array)
+    const importItems = selectedProducts.map(item => {
+        // Cập nhật tồn kho cho 20 sản phẩm này
+        const invItem = inventory.find(i => i.productId === item.productId);
+        if (invItem) {
+            invItem.quantity = quantity;
+            invItem.lastUpdated = new Date().toISOString();
+        }
+        
+        // Lấy giá bán từ products (nếu có)
+        const product = products_admin.find(p => p.id === item.productId);
+        let currentPrice = 10000000; // Default 10M nếu không tìm thấy
+        
+        if (product && typeof products !== 'undefined') {
+            const userProduct = products.find(p => p.id === item.productId);
+            if (userProduct && userProduct.price) {
+                currentPrice = parseInt(userProduct.price) || 10000000;
+            }
+        }
+        
+        // Tính giá vốn = 60% giá bán (lợi nhuận 67% trên giá vốn)
+        // VD: Giá bán 10M → Giá vốn 6M → Lợi nhuận = (10M-6M)/6M = 67%
+        const costPrice = Math.round(currentPrice * 0.6);
+        
+        return {
+            productId: item.productId,
+            productName: item.productName,
+            price: costPrice,
+            qty: quantity
+        };
+    });
+    
+    imports.push({
+        id: importCode,
+        date: today,
+        items: importItems,
+        completed: true,
+        completedDate: new Date().toISOString()
+    });
+    
+    localStorage.setItem('admin_inventory', JSON.stringify(inventory));
+    localStorage.setItem('admin_imports', JSON.stringify(imports));
+    
+    // Update pricing cho 20 sản phẩm đã nhập
+    let pricing = JSON.parse(localStorage.getItem('admin_pricing')) || [];
+    selectedProducts.forEach(item => {
+        // Lấy giá bán từ products
+        let currentPrice = 10000000; // Default
+        if (typeof products !== 'undefined') {
+            const userProduct = products.find(p => p.id === item.productId);
+            if (userProduct && userProduct.price) {
+                currentPrice = parseInt(userProduct.price) || 10000000;
+            }
+        }
+        
+        // Giá vốn = 60% giá bán
+        const costPrice = Math.round(currentPrice * 0.6);
+        
+        const existingPrice = pricing.find(p => p.productId === item.productId);
+        if (!existingPrice) {
+            pricing.push({
+                id: pricing.length + 1,
+                type: item.type,
+                productId: item.productId,
+                productName: item.productName,
+                cost: costPrice,
+                profit: 67 // 67% lợi nhuận (giá bán = giá vốn × 1.67)
+            });
+        } else {
+            existingPrice.cost = costPrice;
+            existingPrice.profit = 67;
+        }
+    });
+    localStorage.setItem('admin_pricing', JSON.stringify(pricing));
+    
+    // Đồng bộ tất cả giá lên trang user
+    syncAllPricingToUserSite();
+    
+    const totalImported = selectedProducts.length * quantity;
+    
+    // Tính ví dụ với sản phẩm đầu tiên
+    const firstProduct = selectedProducts[0];
+    let examplePrice = 10000000;
+    if (typeof products !== 'undefined') {
+        const exampleUserProduct = products.find(p => p.id === firstProduct.productId);
+        if (exampleUserProduct && exampleUserProduct.price) {
+            examplePrice = parseInt(exampleUserProduct.price) || 10000000;
+        }
+    }
+    const exampleCost = Math.round(examplePrice * 0.6);
+    
+    showNotification(`✅ Đã khởi tạo:\n- ${selectedProducts.length} sản phẩm đã nhập (${quantity} cái/sp)\n- Tổng nhập: ${totalImported}\n- VD giá: ${formatCurrency(examplePrice)} → Vốn: ${formatCurrency(exampleCost)} (67% lợi nhuận)\n- ${inventory.length - selectedProducts.length} sản phẩm còn lại = 0`, 'success');
+    
+    // Reload dữ liệu
+    location.reload();
+}
+
+// ...existing code...
+
+/**
+ * Function reset toàn bộ dữ liệu GIAO DỊCH (GIỮ NGUYÊN sản phẩm)
+ */
+function resetAllData() {
+    if (!confirm('⚠️ RESET DỮ LIỆU GIAO DỊCH?\n\n- Tồn kho → 0\n- Phiếu nhập → Xóa\n- Đơn hàng → Xóa\n- Pricing → Xóa\n- Doanh thu → Xóa\n\n✅ GIỮ NGUYÊN:\n- Danh sách sản phẩm\n- Danh sách user\n- Danh mục\n\nThao tác này KHÔNG THỂ HOÀN TÁC!')) {
+        return;
+    }
+    
+    const confirmText = prompt('Gõ "RESET" để xác nhận:');
+    if (confirmText !== 'RESET') {
+        showNotification('❌ Đã hủy!', 'error');
+        return;
+    }
+    
+    // CHỈ XÓA dữ liệu giao dịch - GIỮ NGUYÊN products, users, categories
+    const keysToReset = [
+        'admin_inventory',   // Reset tồn kho về 0
+        'admin_imports',     // Xóa phiếu nhập
+        'admin_orders',      // Xóa đơn hàng
+        'admin_pricing',     // Xóa pricing
+        'admin_revenue'      // Xóa doanh thu
+    ];
+    
+    keysToReset.forEach(key => localStorage.removeItem(key));
+    
+    // Reset inventory về 0 thay vì xóa hoàn toàn
+    const inventory = JSON.parse(localStorage.getItem('admin_inventory')) || [];
+    const resetInventory = products_admin.map(p => ({
+        productId: p.id,
+        productName: p.name,
+        type: p.type,
+        quantity: 0,
+        lastUpdated: new Date().toISOString()
+    }));
+    localStorage.setItem('admin_inventory', JSON.stringify(resetInventory));
+    
+    showNotification('✅ Đã reset dữ liệu giao dịch! Sản phẩm và user vẫn còn nguyên.', 'success');
+    
+    setTimeout(() => {
+        location.reload();
+    }, 1000);
+}
+
+/**
+ * Function XÓA TẤT CẢ (bao gồm cả products, users) - CHỈ DÙNG KHI THẬT SỰ CẦN
+ */
+function resetEverything() {
+    if (!confirm('⚠️⚠️⚠️ XÓA TOÀN BỘ HỆ THỐNG?\n\n- Users\n- Products  \n- Categories\n- Inventory\n- Imports\n- Orders\n- Pricing\n\nSau khi xóa sẽ QUAY VỀ TRẠNG THÁI BAN ĐẦU!\n\nThao tác này CỰC KỲ NGUY HIỂM!')) {
+        return;
+    }
+    
+    const confirmText = prompt('Gõ "DELETE EVERYTHING" để xác nhận XÓA TOÀN BỘ:');
+    if (confirmText !== 'DELETE EVERYTHING') {
+        showNotification('❌ Đã hủy!', 'error');
+        return;
+    }
+    
+    const allKeys = [
+        'admin_users',
+        'admin_products',
+        'admin_categories',
+        'admin_inventory',
+        'admin_imports',
+        'admin_orders',
+        'admin_pricing',
+        'admin_revenue',
+        'admin_products_synced',
+        'user_site_products',
+        'products_price_updated'
+    ];
+    
+    allKeys.forEach(key => localStorage.removeItem(key));
+    
+    showNotification('🗑️ Đã xóa TOÀN BỘ! Hệ thống sẽ quay về trạng thái ban đầu.', 'warning');
+    
+    setTimeout(() => {
+        location.reload();
+    }, 1500);
+}
+
+// ...existing code...

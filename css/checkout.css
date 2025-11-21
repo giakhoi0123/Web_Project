@@ -104,17 +104,64 @@
 
 .checkout-pages .box-payment {
     width: 100%;
-    display: inline-flex;
-    justify-content: space-around;
-    margin: 12px 14px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px;
+    margin: 12px 0;
 }
 
-.checkout-pages input[type="radio"] {
+.checkout-pages .payment-option {
+    position: relative;
+}
+
+.checkout-pages .payment-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
     cursor: pointer;
 }
 
-.checkout-pages .box-payment i {
-    display: inline;
+.checkout-pages .payment-option label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 15px 10px;
+    border: 2px solid #e1e4e8;
+    border-radius: 8px;
+    background-color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    height: 100%;
+    gap: 8px;
+}
+
+.checkout-pages .payment-option label i {
+    font-size: 2em;
+    color: #667eea;
+    transition: color 0.3s ease;
+}
+
+.checkout-pages .payment-option label span {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+    text-align: center;
+}
+
+.checkout-pages .payment-option input[type="radio"]:checked + label {
+    border-color: #667eea;
+    background: linear-gradient(135deg, #f6f7f9 0%, #eef2ff 100%);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.checkout-pages .payment-option input[type="radio"]:checked + label i {
+    color: #4c5fd5;
+}
+
+.checkout-pages .payment-option label:hover {
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
 }
 
 /*-----------------------------Đơn Hàng-------------------------------------*/
@@ -248,6 +295,9 @@
     }
     .checkout-pages .money {
         margin-left: 15px;
+    }
+    .checkout-pages .box-payment {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 

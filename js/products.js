@@ -19,6 +19,37 @@ function loadAdminProducts() {
   return baseProducts;
 }
 
+// Sync prices from admin pricing
+function syncPricesFromAdmin(productsArray) {
+  try {
+    const updatedProducts = localStorage.getItem('user_site_products');
+    if (updatedProducts) {
+      const pricedProducts = JSON.parse(updatedProducts);
+      
+      // Create a map of updated prices
+      const priceMap = {};
+      pricedProducts.forEach(p => {
+        if (p.id && p.price) {
+          priceMap[p.id] = p.price;
+        }
+      });
+      
+      // Apply updated prices to products
+      productsArray.forEach(product => {
+        if (priceMap[product.id]) {
+          product.price = priceMap[product.id];
+        }
+      });
+      
+      console.log('✅ Đã đồng bộ giá từ admin pricing');
+    }
+  } catch (e) {
+    console.error('Lỗi khi sync giá từ admin:', e);
+  }
+  
+  return productsArray;
+}
+
 const baseProducts = [
   // ==================================================
   //           PC (MÁY TÍNH BỘ) - 12 sản phẩm
@@ -275,7 +306,7 @@ const baseProducts = [
     id: 109,
     name: "Intel Core i9-13900K",
     price: "15590000",
-    image: "../img/cpu/i9-13900k.jpg",
+    image: "../img/cpu/i9-13900K.jpg",
     category: "cpu",
     specs: {
       Hãng: "Intel",
@@ -288,7 +319,7 @@ const baseProducts = [
     id: 110,
     name: "AMD Ryzen 9 7950X",
     price: "14890000",
-    image: "../img/cpu/r9-7950x.jpg",
+    image: "../img/cpu/r9-7950X.jpg",
     category: "cpu",
     specs: { Hãng: "AMD", Socket: "AM5", "Nhân/Luồng": "16/32" },
   },
@@ -421,7 +452,7 @@ const baseProducts = [
     id: 208,
     name: "NVIDIA GeForce RTX 4080 SUPER 16GB",
     price: "32990000",
-    image: "../img/vga/4080S.jpg",
+    image: "../img/vga/4080s.jpg",
     category: "vga",
     specs: { Hãng: "NVIDIA", VRAM: "16GB GDDR6X", "Độ phân giải": "4K" },
   },
@@ -1346,5 +1377,6 @@ const baseProducts = [
   },
 ];
 
-// Initialize products with admin additions
-const products = loadAdminProducts();
+// Initialize products with admin additions and pricing sync
+let products = loadAdminProducts();
+products = syncPricesFromAdmin(products);
